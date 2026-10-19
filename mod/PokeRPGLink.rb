@@ -22,7 +22,7 @@
 
 module PokeRPGLink
   unless const_defined?(:VERSION)
-    VERSION      = "1.0.6"
+    VERSION      = "1.0.7"
     STATE_EVERY  = 8     # frames between state refreshes (~7.5x per second)
     CMD_EVERY    = 3     # frames between command-folder checks
   end
@@ -1212,8 +1212,37 @@ module PokeRPGLink
   end
 
   def self.field_hash(effect)
-    return nil unless defined?(FIELDEFFECTS)
-    FIELDEFFECTS[effect] rescue nil
+    if defined?(FIELDEFFECTS)
+      h = (FIELDEFFECTS[effect] rescue nil)
+      return h if h
+    end
+    fe_hash(effect)
+  end
+
+  # Released Rejuvenation/Reborn builds only ship the compiled field data
+  # ($cache.FEData: move => {mult, typemod, …}). Turn it back into the
+  # fieldtxt shape (mult => [moves]) so the field sheet and fallbacks work.
+  def self.fe_hash(effect)
+    @fe_hashes ||= {}
+    return @fe_hashes[effect] if @fe_hashes.key?(effect)
+    d = ($cache.FEData[effect] rescue nil)
+    @fe_hashes[effect] = nil
+    return nil unless d && d.respond_to?(:fieldmovedata)
+    group = lambda do |data, key|
+      out = {}
+      (data || {}).each { |k, v| next unless v.is_a?(Hash) && !v[key].nil?; (out[v[key]] ||= []) << k }
+      out
+    end
+    mvd = (d.fieldmovedata rescue {}) || {}
+    tyd = (d.fieldtypedata rescue {}) || {}
+    @fe_hashes[effect] = {
+      name: (d.name rescue nil), damageMods: group.call(mvd, :mult), typeMods: group.call(mvd, :typemod),
+      accuracyMods: group.call(mvd, :accmod), fieldChange: group.call(mvd, :fieldchange),
+      typeBoosts: group.call(tyd, :mult), typeAddOns: group.call(tyd, :typemod),
+      mimicry: (d.mimicry rescue nil), naturePower: (d.naturePower rescue nil), statusMods: (d.statusMods rescue nil)
+    }
+  rescue
+    nil
   end
 
   # Rejuvenation fields can add a second type to some moves (e.g. Surf also Electric)
@@ -1420,16 +1449,45 @@ module PokeRPGLink
 
   # Rejuvenation/Reborn keep field data compiled inside the battle's field
   # object; ask the game's own helpers so difficulty modes and conditions count.
+  # Mirrors the game's own fight-menu highlight (pbFieldNotesBattle) and adds
+  # what else the field does to this move: field changes, messages, status boosts.
+  SOUND_FIELDS = %i[CAVE BIGTOP CONCERT1 CONCERT2 CONCERT3 CONCERT4]
+  NO_WEATHER_TERRAIN = %i[ELECTRICTERRAIN GRASSYTERRAIN MISTYTERRAIN PSYCHICTERRAIN MIST RAINDANCE SUNNYDAY HAIL SANDSTORM]
   def self.rejuv_field_data(bt, m, me, foe, type)
     f = (bt.field rescue nil)
     return nil unless f && f.respond_to?(:moveData) && m.respond_to?(:moveFieldBoost)
     return { mult: 1.0, type: nil } unless (f.isFieldEffect? rescue true)
-    mult = (m.moveFieldBoost rescue 1).to_f
-    mult *= (m.typeFieldBoost(type, me, foe) rescue (m.typeFieldBoost(type) rescue 1)).to_f
-    md = (f.moveData(m.move) rescue nil) || {}
+    fe = (bt.FE rescue nil) || (f.effect rescue nil)
+    mv = m.move
+    bd = (m.basedamage rescue 1).to_i
+    fn = (m.function rescue nil)
+    fixed = fn.is_a?(Integer) && ((0x6A..0x73).include?(fn) || [0xD4, 0xE1].include?(fn))
+    tb = 1.0
+    mb = 1.0
+    if bd > 0 && !fixed
+      tb = (m.typeFieldBoost(type, me, foe) rescue (m.typeFieldBoost(type) rescue 1)).to_f
+      mb = (m.moveFieldBoost rescue 1).to_f
+      mb = 1.5 if SOUND_FIELDS.include?(fe) && move_flag?(m, %i[isSoundBased? soundMove?])
+    end
+    mb = 1.5 if mv == :SONICBOOM && fe == :RAINBOW
+    mb = 0 if %i[UNDERWATER NEWWORLD].include?(fe) && NO_WEATHER_TERRAIN.include?(mv)
+    mb = 0 if fe == :ELECTERRAIN && mv == :FOCUSPUNCH
+    mb = 0 if fe == :CAVE && mv == :SKYDROP
+    md = (f.moveData(mv) rescue nil) || {}
     td = (f.typeData(type) rescue nil) || {}
-    out = { mult: mult.round(2), type: md[:typemod] || td[:typemod] }
+    out = { mult: (tb * mb).round(2), type: md[:typemod] || td[:typemod] }
     out[:acc] = md[:accmod] if md.key?(:accmod)
+    out[:status] = true if ((f.statusMoves || []).include?(mv) rescue false)
+    if md[:fieldchange]
+      to = md[:fieldchange]
+      nm = ($cache.FEData[to].name rescue nil).to_s
+      out[:change] = nm.empty? ? "no field" : nm
+    end
+    out[:builds] = true if md[:moveeffect].to_s =~ /counter/
+    msgs = []
+    msgs << (f.data.movemessagelist[md[:multtext] - 1] rescue nil) if md[:multtext] && mb != 1
+    msgs << (f.data.typemessagelist[td[:multtext] - 1] rescue nil) if td[:multtext] && tb != 1
+    out[:msg] = msgs.compact.map(&:to_s).reject(&:empty?).first
     out
   end
 
@@ -1869,8 +1927,17 @@ module PokeRPGLink
         mv["fieldType"] = xt ? type_name(xt) : nil
         fa = fdata && fdata.key?(:acc) ? fdata[:acc] : field_accuracy(field, m.move)
         mv["fieldAcc"] = fa
+        if fdata
+          mv["fieldChange"] = fdata[:change] if fdata[:change]
+          mv["fieldStatus"] = true if fdata[:status]
+          mv["fieldBuilds"] = true if fdata[:builds]
+          mv["fieldMsg"] = fdata[:msg] if fdata[:msg]
+        else
+          ch = ((field_hash(field) || {})[:fieldChange] || {}).find { |_, l| l.include?(m.move) } rescue nil
+          mv["fieldChange"] = (($cache.FEData[ch[0]].name rescue nil) || ch[0].to_s) if ch
+        end
         fname = field_name_of(bt, field) || "Field"
-        fb = mv["field"] && mv["field"] != 1 ? [[fname, mv["field"]]] : nil
+        fb = mv["field"] && mv["field"] != 1 && mv["field"] != 0 ? [[fname, mv["field"]]] : nil
         mv["boosts"] = power_boosts(bt, me, m, m.move, btype, mtype, mv["cat"], mv["pow"], foe0, fb)
         mv["power"] = boost_total(mv["boosts"])
         others = (own + foes).reject { |o| o.index == me.index }
