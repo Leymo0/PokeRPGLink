@@ -93,6 +93,15 @@ send_cmd("req dex"); send_cmd("req map")
 frames(4)
 dex = JSON.parse(File.read(File.join(PokeRPGLink.dir, "dex.json")))
 check "dex sorted with locations", dex["species"].first["species"] == "PIKACHU" && dex["species"].first["where"].any? { |w| w.include?("Route 1") }
+# Rejuvenation 14 keeps species data inside a per-form wrapper
+class MonWrapper; def initialize(sym, data); @flags = {}; @mon = sym; @pokemonData = { "Normal Form" => data }; end; end
+$cache.pkmn[:ZUBAT] = MonWrapper.new(:ZUBAT, $cache.pkmn[:ZUBAT])
+send_cmd("req dex"); frames(4)
+dex14 = JSON.parse(File.read(File.join(PokeRPGLink.dir, "dex.json")))
+zb = dex14["species"].find { |e| e["species"] == "ZUBAT" }
+check "dex works with Rejuvenation 14 species wrappers", zb && zb["dex"] == 41 && zb["base"] && zb["types"] == ["POISON", "FLYING"] && dex14["species"].length == dex["species"].length
+$cache.pkmn[:ZUBAT] = $cache.pkmn[:ZUBAT].instance_variable_get(:@pokemonData)["Normal Form"]   # back to plain data for the rest
+check "error toasts stay short", PokeRPGLink.short_error(RuntimeError.new("undefined method `x' for #<MonWrapper:0x1 @flags={} @a=" + "y" * 500 + ">")).length <= 141
 tm = JSON.parse(File.read(File.join(PokeRPGLink.dir, "map.json")))
 check "town map regions+points", tm["regions"][0]["image"].end_with?("FullMap_1.PNG") && tm["points"].length == 2
 check "fly flags", tm["points"].find { |p| p["x"] == 22 }["visited"] == true && tm["points"].find { |p| p["x"] == 20 }["visited"] == false
