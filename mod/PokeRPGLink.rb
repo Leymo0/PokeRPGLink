@@ -22,7 +22,7 @@
 
 module PokeRPGLink
   unless const_defined?(:VERSION)
-    VERSION      = "1.0.1"
+    VERSION      = "1.0.2"
     STATE_EVERY  = 8     # frames between state refreshes (~7.5x per second)
     CMD_EVERY    = 3     # frames between command-folder checks
   end
@@ -854,11 +854,93 @@ module PokeRPGLink
     @icon_cache[p] = found
   end
 
-  def self.species_icon(sym, form = 0, shiny = false, female = false)
+  def self.species_icon(sym, form = 0, shiny = false, female = false, pkmn = nil)
     key = "si:#{sym}:#{form}:#{shiny}:#{female}"
     return @icon_cache[key] if @icon_cache.key?(key)
-    @icon_cache[key] = custom_icon(sym, form, shiny) ||
-                       resolve_file((pbCheckPokemonIconFiles([sym, female, shiny, form, false], false) rescue nil))
+    @icon_cache[key] = custom_icon(sym, form, shiny) || game_icon(sym, form, shiny, female, pkmn)
+  end
+
+  # The icon the game itself draws (its party screen icon). Tries the game's own
+  # lookup first, then the usual file names by species and dex number.
+  def self.game_icon(sym, form, shiny, female, pkmn)
+    path = nil
+    path = (pbPokemonIconFile(pkmn) rescue nil) if pkmn
+    path = nil if path.to_s =~ /icon0+(\.png)?\z/i          # the "?" placeholder
+    path ||= (pbCheckPokemonIconFiles([sym, female, shiny, form, false], false) rescue nil)
+    path = nil if path.to_s =~ /icon0+(\.png)?\z/i
+    unless path
+      dex = ($cache.pkmn[sym].dexnum rescue nil)
+      dex = sym if sym.is_a?(Integer)
+      bases = [sym.to_s, sym.to_s.downcase]
+      bases += [format("%03d", dex.to_i), dex.to_s] if dex
+      tries = []
+      bases.each do |b|
+        tries << "#{b}#{shiny ? 's' : ''}_#{form}" if form.to_i > 0
+        tries << "#{b}s" if shiny
+        tries << b
+      end
+      tries.uniq.each do |n|
+        ["Graphics/Icons/icon#{n}", "Graphics/Pokemon/Icons/#{n}", "Graphics/Icons/#{n}"].each do |c|
+          path ||= (pbResolveBitmap(c) rescue nil) || resolve_file(c)
+        end
+        break if path
+      end
+    end
+    return nil unless path
+    image_file(path, "icon_#{sym}_#{form}#{shiny ? 's' : ''}", true)
+  end
+
+  # A picture as a loose file the panel can show. Games that keep their graphics
+  # inside an archive only hand them to the game, so we draw the game's own bitmap
+  # into PokeRPGLink/cache/ once (first frame only for icon strips).
+  def self.image_file(path, key, first_frame = false)
+    loose = resolve_file(path)
+    return loose if loose
+    name = key.to_s.gsub(/[^A-Za-z0-9_.-]/, "_") + ".png"
+    out = "PokeRPGLink/cache/#{name}"            # relative to the game folder, like every other image path
+    return out if File.file?(out)
+    shared = false
+    bmp = (Bitmap.new(path) rescue nil)
+    unless bmp
+      bmp = (RPG::Cache.load_bitmap("", path) rescue nil)
+      shared = true
+    end
+    return nil unless bmp
+    begin
+      w = bmp.width
+      h = bmp.height
+      w = [h, w].min if first_frame && w >= 2 * h       # 2-frame icon strips
+      Dir.mkdir("PokeRPGLink") unless File.directory?("PokeRPGLink")
+      Dir.mkdir("PokeRPGLink/cache") unless File.directory?("PokeRPGLink/cache")
+      write_png(out, bmp, w, h)
+      out
+    rescue => e
+      err("image #{path}", e)
+      nil
+    ensure
+      (bmp.dispose rescue nil) unless shared
+    end
+  end
+
+  def self.write_png(file, bmp, w, h)
+    require "zlib"
+    raw = String.new(capacity: (w * 4 + 1) * h, encoding: Encoding::BINARY) rescue (raw = "".b)
+    h.times do |y|
+      raw << "\x00"
+      w.times do |x|
+        c = bmp.get_pixel(x, y)
+        raw << [c.red.to_i, c.green.to_i, c.blue.to_i, c.alpha.to_i].pack("C4")
+      end
+    end
+    chunk = lambda do |type, data|
+      [data.bytesize].pack("N") + type + data + [Zlib.crc32(type + data)].pack("N")
+    end
+    png = "\x89PNG\r\n\x1a\n".b
+    png << chunk.call("IHDR", [w, h, 8, 6, 0, 0, 0].pack("NNCCCCC"))
+    png << chunk.call("IDAT", Zlib::Deflate.deflate(raw))
+    png << chunk.call("IEND", "")
+    File.open(file + ".tmp", "wb") { |f| f.write(png) }
+    File.rename(file + ".tmp", file)
   end
 
   # Your own icon pack wins over the game's: put PNGs in <game>/PokeRPGLink/icons/
@@ -894,7 +976,7 @@ module PokeRPGLink
   def self.item_icon(i)
     key = "it:#{i}"
     return @icon_cache[key] if @icon_cache.key?(key)
-    @icon_cache[key] = resolve_file(pbItemIconFile(i)) rescue nil
+    @icon_cache[key] = (image_file(pbItemIconFile(i), "item_#{i}") rescue nil)
   end
 
   def self.dex_flags(sym)
@@ -983,7 +1065,7 @@ module PokeRPGLink
       "ot" => (p.ot rescue nil),
       "ball" => (p.ballused rescue nil).to_s,
       "mail" => (p.mail ? true : false),
-      "icon" => species_icon(sp, (p.form rescue 0), (p.isShiny? rescue false), (p.isFemale? rescue false)),
+      "icon" => species_icon(sp, (p.form rescue 0), (p.isShiny? rescue false), (p.isFemale? rescue false), p),
       "sprite" => species_sprite(sp)
     }.merge(extra)
   end
@@ -1372,7 +1454,7 @@ module PokeRPGLink
       "ability" => abil(b.ability),
       "stages" => stages, "effects" => eff,
       "active" => b.index == active_idx,
-      "icon" => species_icon(sp, (b.form rescue 0), (p.isShiny? rescue false)),
+      "icon" => species_icon(sp, (b.form rescue 0), (p.isShiny? rescue false), (p.isFemale? rescue false), p),
       "sprite" => species_sprite(sp)
     }
     if own
@@ -1670,13 +1752,13 @@ module PokeRPGLink
     def species_icon(sym, form = 0, shiny = false, female = false)
       key = "si:#{sym}:#{form}:#{shiny}:#{female}"
       return @icon_cache[key] if @icon_cache.key?(key)
-      @icon_cache[key] = custom_icon(sym, form, shiny) ||
-                         resolve_file((GameData::Species.icon_filename(sym, form, female ? 1 : 0, shiny) rescue nil))
+      f = (GameData::Species.icon_filename(sym, form, female ? 1 : 0, shiny) rescue nil)
+      @icon_cache[key] = custom_icon(sym, form, shiny) || (f && image_file(f, "icon_#{sym}_#{form}#{shiny ? 's' : ''}", true))
     end
 
     def pokemon_icon(p)
       (custom_icon(p.species, (p.form rescue 0), (p.shiny? rescue false))) ||
-        resolve_file((GameData::Species.icon_filename_from_pokemon(p) rescue nil)) ||
+        ((f = (GameData::Species.icon_filename_from_pokemon(p) rescue nil)) && image_file(f, "icon_#{p.species}_#{(p.form rescue 0)}#{(p.shiny? rescue false) ? 's' : ''}", true)) ||
         species_icon(p.species)
     end
 
@@ -1689,7 +1771,8 @@ module PokeRPGLink
     def item_icon(i)
       key = "it:#{i}"
       return @icon_cache[key] if @icon_cache.key?(key)
-      @icon_cache[key] = resolve_file((GameData::Item.icon_filename(i) rescue nil))
+      f = (GameData::Item.icon_filename(i) rescue nil)
+      @icon_cache[key] = f && image_file(f, "item_#{i}")
     end
 
     ESS_STATS = [:HP, :ATTACK, :DEFENSE, :SPECIAL_ATTACK, :SPECIAL_DEFENSE, :SPEED]
