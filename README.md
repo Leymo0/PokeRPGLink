@@ -17,7 +17,6 @@ The game runs on the top screen; PokeRPGLink is the touch panel on the bottom sc
 |---|---|
 | ![Area](docs/images/page-area.png)<br>**Area** — the wild Pokémon here: shadows until you've seen them, a Poké Ball once caught, morning/day/night icons | ![Party](docs/images/page-party.png)<br>**Pokémon** — your team at a glance |
 | ![Summary](docs/images/page-summary.png)<br>**Summary** — stats, ability, held item, move order | ![Bag](docs/images/page-bag.png)<br>**Bag** — use items, give them to a Pokémon |
-| ![Pokédex](docs/images/page-dex.png)<br>**Pokédex** — filter by type, seen or caught | |
 
 ## Skins
 
@@ -98,7 +97,7 @@ The game runs on the top screen with your controller. The bottom screen shows a 
   - **Pokémon** — party HP and status; tap one for summary, stats (IV/EV), moves (tap two moves to swap their order), give/take held items, move up/down in the party.
   - **Bag** — pockets and items; use an item or give it to a Pokémon.
   - **Map** — the region map with your position; tap a fly point you've visited to Fly there.
-  - **Pokédex** — your whole dex on the bottom screen, filter by type / seen / caught, with base stats, abilities, entry and where it's found.
+  - **Pokédex** — opens the game's own Pokédex on the top screen.
   - **Save** — saves the game (with a confirm), plus shortcuts to open the in-game screens.
 - **✚ button (top right):** a virtual A/B/X/Y/L/R and D-pad, for things like choosing a target in double battles by touch.
 - **— button:** hides the panel into a small bubble; tap the bubble to bring it back.
