@@ -581,9 +581,20 @@ function effClass(mv) {
   return best === 0 ? "e-none" : best > 1 ? "e-super" : best < 1 ? "e-weak" : "e-normal";
 }
 
+// Power change from field, ability, item, weather, stat stages… (▲×1.5)
+function powTag(mv) {
+  if (mv.cat === "status") return "";
+  const p = mv.field === 0 ? 0 : mv.power != null ? mv.power : mv.field || 1;
+  if (p === 1) return "";
+  if (p === 0) return ` <b class="pw down">fails here</b>`;
+  return ` <b class="pw ${p > 1 ? "up" : "down"}">${p > 1 ? "▲" : "▼"}×${p}</b>`;
+}
+
 function effBadges(mv, foes) {
   let h = "";
-  if (mv.field && mv.field !== 1) h += `<i class="fx">${mv.field === 0 ? "fails" : "field ×" + mv.field}</i>`;
+  if (mv.field === 0) h += `<i class="fx">fails</i>`;
+  else if (mv.power != null && mv.power !== 1) h += `<i class="fx ${mv.power > 1 ? "up" : "down"}">${mv.power > 1 ? "▲" : "▼"}×${mv.power}</i>`;
+  else if (mv.power == null && mv.field && mv.field !== 1) h += `<i class="fx">field ×${mv.field}</i>`;
   if (mv.fieldType) h += `<i class="fx">+${esc(mv.fieldType)}</i>`;
   for (const v of mv.vs || []) {
     if (v.mult == null) continue;
@@ -636,8 +647,8 @@ function renderBattle() {
         <span class="ticon ${packIcon(mv.type) ? "img" : ""}">${typeIcon(mv.type)}</span>
         <span class="eff">${effBadges(mv, foes)}</span>
         <span class="mn">${esc(mv.name)}</span>
-        <span class="meff">${esc(effWord(mv, foes))}</span>
-        <span class="ml">${esc(mv.typeName || mv.type)} · ${mv.cat === "status" ? "Status" : (mv.pow || "—") + (mv.stab ? " STAB" : "")}<span class="pp num">${mv.pp}/${mv.maxpp}</span></span>
+        <span class="meff">${esc(effWord(mv, foes))}${powTag(mv)}</span>
+        <span class="ml">${esc(mv.typeName || mv.type)}${mv.baseType ? ` (was ${esc(mv.baseTypeName || mv.baseType)})` : ""} · ${mv.cat === "status" ? "Status" : (mv.pow || "—") + (mv.stab ? " STAB" : "")}<span class="pp num">${mv.pp}/${mv.maxpp}</span></span>
         <span class="ppbig num"><b>${mv.pp}</b>/${mv.maxpp}</span></button>`;
     }
     h += `</div>`;
@@ -904,7 +915,7 @@ function renderSheet() {
     const mv = S.battle && S.battle.moves.find((m) => m.slot === s.slot);
     if (!mv) return closeSheet();
     h = head("", esc(mv.name), `${typeChip(mv.type, mv.typeName)} ${pretty(mv.cat)}`);
-    h += `<dl class="kv"><dt>Power</dt><dd class="num">${mv.pow || "—"}</dd><dt>Accuracy</dt><dd class="num">${mv.fieldAcc ? `${mv.fieldAcc}% on this field` : mv.acc ? mv.acc + "%" : "—"}</dd>${mv.fieldType ? `<dt>Field</dt><dd>Also ${esc(mv.fieldType)}-type here</dd>` : ""}<dt>PP</dt><dd class="num">${mv.pp}/${mv.maxpp}</dd>${mv.pri ? `<dt>Priority</dt><dd>${mv.pri}</dd>` : ""}</dl><p class="prose">${esc(mv.desc)}</p>
+    h += `<dl class="kv"><dt>Power</dt><dd class="num">${mv.pow || "—"}</dd><dt>Accuracy</dt><dd class="num">${mv.fieldAcc ? `${mv.fieldAcc}% on this field` : mv.acc ? mv.acc + "%" : "—"}</dd>${mv.baseType ? `<dt>Type</dt><dd>${esc(mv.typeName || mv.type)} here — normally ${esc(mv.baseTypeName || mv.baseType)}${mv.typeWhy ? ` (${esc(mv.typeWhy)})` : ""}</dd>` : ""}${mv.fieldType ? `<dt>Field</dt><dd>Also ${esc(mv.fieldType)}-type here</dd>` : ""}${(mv.boosts || []).length ? `<dt>Boosts</dt><dd>${mv.boosts.map((x) => `${esc(x.label)} ×${x.mult}`).join(", ")}${mv.boosts.length > 1 ? ` → ×${mv.power}` : ""}</dd>` : ""}<dt>PP</dt><dd class="num">${mv.pp}/${mv.maxpp}</dd>${mv.pri ? `<dt>Priority</dt><dd>${mv.pri}</dd>` : ""}</dl><p class="prose">${esc(mv.desc)}</p>
       <div class="actions"><button class="primary" data-move="${mv.slot}">Use ${esc(mv.name)}</button></div>`;
   } else if (s.kind === "target" || s.kind === "gametarget") {
     const b = S.battle;
