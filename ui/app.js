@@ -1025,6 +1025,8 @@ document.addEventListener("click", (ev) => {
   if (!t) return;
   const d = t.dataset;
   if (t.id === "sheet-scrim") return closeSheet();
+  // Pokédex: open the game's own Pokédex on the top screen
+  if (d.tab === "dex") { send("opendex"); closeSheet(); return PokeRPGLink.toast("Opening the Pokédex on the top screen"); }
   if (d.tab) { ui.tab = d.tab; closeSheet(); return render(true); }
   if (d.plugbar) { const b = PLUG.barButtons.find((x) => x.id === d.plugbar); try { b && b.onClick && b.onClick(); } catch (e) {} return; }
   if (d.pluginClick && PLUG.clicks && PLUG.clicks[d.pluginClick]) { try { PLUG.clicks[d.pluginClick](t, S); } catch (e) {} return; }
