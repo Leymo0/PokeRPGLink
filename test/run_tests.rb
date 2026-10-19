@@ -65,6 +65,11 @@ PokeRPGLink.instance_variable_set(:@icon_cache, {})
 zi = PokeRPGLink.species_icon(:ZUBAT)
 zpng = (File.binread(zi) rescue "")
 check "icon drawn by the game's own icon function", zi.to_s.start_with?("PokeRPGLink/cache/") && zpng[16, 8].unpack("NN") == [64, 64]
+# The runtime's own PNG writer is used when it works, the slow one when it doesn't
+class FastIcon < FakeIcon; def to_file(f); File.binwrite(f, "\x89PNG fake".b); end; def blt(*a); end; def dispose; end; end
+class Bitmap; def blt(*a); end; end rescue nil
+PokeRPGLink.save_png("PokeRPGLink/cache/fast.png", FastIcon.new, 128, 64)
+check "native PNG writer used when available", File.binread("PokeRPGLink/cache/fast.png").start_with?("\x89PNG fake".b)
 check "period is night", s["map"]["period"] == "night"
 check "map position", s["map"]["pos"] == [0, 22, 29]
 check "party has 2", s["party"].length == 2
