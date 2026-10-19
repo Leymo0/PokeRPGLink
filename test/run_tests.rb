@@ -132,6 +132,14 @@ scene.pbCommandMenuEx(0, [])
 r3 = scene.pbFightMenu(0)
 check "special toggle pressed then move 1", $mega_pressed && r3 == 1
 
+# Spamming taps: once a move is chosen, more battle taps are ignored until the game asks again
+send_cmd("bmove 2"); send_cmd("bmove 3"); frames(10)
+check "taps after a chosen move are not queued for later turns", PokeRPGLink.battle_queue.empty?
+old = Dir.children(File.join(PokeRPGLink.dir, "cmd")).length
+File.write(File.join(PokeRPGLink.dir, "cmd", format("%015d_00001.cmd", (Time.now.to_f * 1000).to_i - 9000)), "save")
+frames(6)
+check "old taps are dropped, not replayed", Dir.children(File.join(PokeRPGLink.dir, "cmd")).length == old && PokeRPGLink.instance_variable_get(:@field_queue).empty?
+
 # Switch tap at the command menu -> opens Pokemon (2) then pbSwitch returns party index directly
 send_cmd("bswitch 1")
 r4 = scene.pbCommandMenuEx(0, [])
