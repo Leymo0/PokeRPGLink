@@ -37,6 +37,27 @@ PokeRPGLink.instance_variable_set(:@icon_cache, {})
 frames(20)
 grim = state["map"]["encounters"].flat_map { |g| g["list"] }.find { |e| e["species"] == "GRIMER" }
 check "custom icon pack by dex number wins", grim["icon"] == "PokeRPGLink/icons/088.png"
+# Rejuvenation 14 style: the game's icon lookup gives a path whose file isn't loose
+# (packed graphics); the mod draws the game's bitmap into PokeRPGLink/cache instead.
+class FakeColor; attr_reader :red, :green, :blue, :alpha; def initialize(r, g, b, a); @red, @green, @blue, @alpha = r, g, b, a; end; end
+class Bitmap
+  def initialize(path); raise "missing" unless path.to_s.include?("Packed"); @w, @h = 8, 4; end
+  def width; @w; end
+  def height; @h; end
+  def get_pixel(x, y); FakeColor.new(x * 30, y * 60, 200, x < 4 ? 255 : 0); end
+  def dispose; end
+end
+def pbCheckPokemonIconFiles(p, egg = false); raise ArgumentError, "%03d with a symbol"; end
+def pbResolveBitmap(x); x.to_s.include?("iconGRIMER") ? "Graphics/Packed/iconGRIMER.png" : nil; end
+FileUtils.rm_f("PokeRPGLink/icons/088.png")
+PokeRPGLink.instance_variable_set(:@icon_cache, {})
+frames(20)
+grim2 = state["map"]["encounters"].flat_map { |g| g["list"] }.find { |e| e["species"] == "GRIMER" }
+png = (File.binread(grim2["icon"]) rescue "")
+require "zlib"
+idat = png[33 + 8, png[33, 4].unpack1("N")] rescue ""
+pix = (Zlib::Inflate.inflate(idat) rescue "")
+check "packed icon drawn into the cache as a PNG (first frame only)", grim2["icon"].to_s.start_with?("PokeRPGLink/cache/") && png.start_with?("\x89PNG".b) && png[16, 8].unpack("NN") == [4, 4] && pix.bytesize == 4 * (4 * 4 + 1)
 check "period is night", s["map"]["period"] == "night"
 check "map position", s["map"]["pos"] == [0, 22, 29]
 check "party has 2", s["party"].length == 2
@@ -227,6 +248,10 @@ check "paused message passes through unchanged (level-up crash fixed)", !crashed
 class PokeBattle_Scene; def pbDisplayPausedMessage(msg, extra = :x); @paused2 = [msg, extra]; end; end
 crashed = begin; scene.pbDisplayPausedMessage("A", :b); false; rescue ArgumentError; true; end
 check "later redefinitions are respected", !crashed && scene.instance_variable_get(:@paused2) == ["A", :b]
+# …and a caller handing over more than the game's method takes (Rejuvenation 14 on Kirin) is trimmed
+class PokeBattle_Scene; def pbDisplayPausedMessage(msg); @paused3 = msg; end; end
+crashed = begin; scene.pbDisplayPausedMessage("B", :extra, :more); false; rescue ArgumentError; true; end
+check "extra arguments trimmed to what the game accepts", !crashed && scene.instance_variable_get(:@paused3) == "B"
 
 # ---- panel bag in battle
 $Trainer.party[0].hp = 10
