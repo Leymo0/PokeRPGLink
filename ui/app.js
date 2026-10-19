@@ -750,8 +750,10 @@ function loadDex() {
   }
   // ask the game for a fresh export when it's missing or our caught/seen counts are behind
   const p = S.player || {};
-  const stale = dex && p.owned != null && (dex.species.filter((s) => s.owned).length !== p.owned || dex.species.filter((s) => s.seen).length !== p.seen);
-  if ((!dex || stale) && Date.now() - lastDexReq > 5000) { lastDexReq = Date.now(); send("req dex"); }
+  const old = dex && S.v && dex.v !== S.v;           // made by an older mod version: rebuild it
+  const behind = dex && p.owned != null && (dex.species.filter((s) => s.owned).length !== p.owned || dex.species.filter((s) => s.seen).length !== p.seen);
+  const wait = !dex || old ? 5000 : 60000;           // counts can differ slightly; don't keep re-asking
+  if ((!dex || old || behind) && Date.now() - lastDexReq > wait) { lastDexReq = Date.now(); send("req dex"); }
 }
 function renderDex() {
   loadDex();
@@ -760,8 +762,7 @@ function renderDex() {
   const inDex = dex.lastSeen != null ? dex.species.filter((s) => s.dex > 0 && s.dex <= dex.lastSeen) : dex.species;
   let list = inDex.filter((s) => (ui.dexFilter === "all" || (ui.dexFilter === "seen" ? s.seen : s.owned)));
   if (ui.dexType) list = list.filter((s) => s.seen && s.types.includes(ui.dexType));
-  const num = (v) => (typeof v === "number" ? v : null);
-  const owned = num(dex.gameOwned) ?? dex.species.filter((s) => s.owned).length, seen = num(dex.gameSeen) ?? dex.species.filter((s) => s.seen).length;
+  const owned = dex.species.filter((s) => s.owned).length, seen = dex.species.filter((s) => s.seen).length;
   const allTypes = (dex.types || []).filter((t) => !["QMARKS", "SHADOW"].includes(t.id));
   let h = `<div class="pockets typefilter"><button data-dext="" aria-current="${!ui.dexType}">Any type</button>${allTypes.map((t) => `<button class="t-${esc(t.id)}" data-dext="${esc(t.id)}" aria-current="${ui.dexType === t.id}">${esc(t.name)}</button>`).join("")}</div>
     <div class="seg">${[["all", "All"], ["seen", `Seen ${seen}`], ["owned", `Caught ${owned}`]].map(([k, n]) => `<button data-dexf="${k}" aria-current="${ui.dexFilter === k}">${n}</button>`).join("")}</div>`;
