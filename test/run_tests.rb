@@ -108,6 +108,12 @@ dex14 = JSON.parse(File.read(File.join(PokeRPGLink.dir, "dex.json")))
 zb = dex14["species"].find { |e| e["species"] == "ZUBAT" }
 check "dex works with Rejuvenation 14 species wrappers", zb && zb["dex"] == 41 && zb["base"] && zb["types"] == ["POISON", "FLYING"] && dex14["species"].length == dex["species"].length
 $cache.pkmn[:ZUBAT] = $cache.pkmn[:ZUBAT].instance_variable_get(:@pokemonData)["Normal Form"]   # back to plain data for the rest
+# Newer builds can keep dex flags per form: only a real "yes" counts
+$Trainer.pokedex.dexList[:ZUBAT] = { seen?: { "Normal Form" => false }, owned?: { "Normal Form" => false } }
+check "per-form dex flags that are all 'no' don't count as caught", PokeRPGLink.dex_flags(:ZUBAT) == [false, false]
+$Trainer.pokedex.dexList[:ZUBAT] = { seen?: { "Normal Form" => true }, owned?: { "Normal Form" => false } }
+check "per-form dex flags: seen but not caught", PokeRPGLink.dex_flags(:ZUBAT) == [true, false]
+$Trainer.pokedex.dexList.delete(:ZUBAT)
 check "error toasts stay short", PokeRPGLink.short_error(RuntimeError.new("undefined method `x' for #<MonWrapper:0x1 @flags={} @a=" + "y" * 500 + ">")).length <= 141
 tm = JSON.parse(File.read(File.join(PokeRPGLink.dir, "map.json")))
 check "town map regions+points", tm["regions"][0]["image"].end_with?("FullMap_1.PNG") && tm["points"].length == 2
