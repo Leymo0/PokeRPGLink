@@ -59,8 +59,8 @@
       { index: 0, own: true, species: "PIKACHU", name: "Volt", speciesName: "Pikachu", level: 24, hp: 41, maxhp: 58, status: null, types: ["ELECTRIC"], typeNames: ["Electric"], ability: { name: "Static", desc: "Contact may paralyze." }, stages: { spe: -1 }, effects: [], item: { name: "Light Ball" }, stats: { atk: 31, def: 30, spa: 44, spd: 36, spe: 58 } },
     ],
     moves: [
-      { slot: 0, name: "Thunderbolt", type: "ELECTRIC", typeName: "Electric", cat: "special", pow: 90, acc: 100, pp: 12, maxpp: 15, stab: true, field: 1.5, vs: [{ index: 1, mult: 1 }], desc: "A strong electric blast." },
-      { slot: 1, name: "Quick Attack", type: "NORMAL", typeName: "Normal", cat: "physical", pow: 40, acc: 100, pp: 30, maxpp: 30, pri: 1, field: 1, vs: [{ index: 1, mult: 1 }], desc: "Always strikes first." },
+      { slot: 0, name: "Thunderbolt", type: "ELECTRIC", typeName: "Electric", cat: "special", pow: 90, acc: 100, pp: 12, maxpp: 15, stab: true, field: 1.5, boosts: [{ label: "Electric Terrain", mult: 1.5 }], power: 1.5, vs: [{ index: 1, mult: 1 }], desc: "A strong electric blast." },
+      { slot: 1, name: "Quick Attack", type: "ELECTRIC", typeName: "Electric", baseType: "NORMAL", baseTypeName: "Normal", typeWhy: "Galvanize", cat: "physical", pow: 40, acc: 100, pp: 30, maxpp: 30, pri: 1, field: 1.5, boosts: [{ label: "Electric Terrain", mult: 1.5 }, { label: "Galvanize", mult: 1.3 }], power: 1.95, vs: [{ index: 1, mult: 1 }], desc: "Always strikes first." },
       { slot: 2, name: "Thunder Wave", type: "ELECTRIC", typeName: "Electric", cat: "status", pow: 0, acc: 90, pp: 18, maxpp: 20, field: 1, vs: [{ index: 1, mult: null }], desc: "Paralyzes the target." },
       { slot: 3, name: "Iron Tail", type: "STEEL", typeName: "Steel", cat: "physical", pow: 100, acc: 75, pp: 0, maxpp: 15, field: 1, vs: [{ index: 1, mult: 0 }], desc: "May lower Defense." },
     ],
