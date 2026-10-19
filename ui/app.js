@@ -52,7 +52,18 @@ let lastRender = "";
 let lastStateAt = 0;
 let scrollMemo = {};
 
-function send(line) { try { B.send(line); if (settings.haptics !== false && B.haptic) B.haptic(); } catch (e) { console.log("send", line); } }
+// One battle action at a time: after choosing a move / switch / item / ball / run, further
+// battle taps are ignored until the game asks for the next choice (the mod reports "busy").
+const FINAL = /^(bmove|bitem|bball|bswitch|bcmd 3)\b/;
+let sentAt = 0;
+function battleLocked() { return !!(S && S.mode === "battle" && (S.busy || Date.now() - sentAt < 1200)); }
+function send(line) {
+  if (/^b(move|item|ball|switch|cmd)\b/.test(line)) {
+    if (battleLocked()) return;
+    if (FINAL.test(line)) { sentAt = Date.now(); setTimeout(() => render(true), 1250); }
+  }
+  try { B.send(line); if (settings.haptics !== false && B.haptic) B.haptic(); } catch (e) { console.log("send", line); }
+}
 const IMG = {};
 function img(path) {
   if (!path) return "";
@@ -60,14 +71,27 @@ function img(path) {
   if (B.image) {
     if (!(path in IMG)) { try { IMG[path] = B.image(path); } catch (e) { IMG[path] = ""; } }
     if (IMG[path]) return IMG[path];
+    if (path.startsWith("PokeRPGLink/cache/")) delete IMG[path];   // still being drawn by the game: ask again later
   }
   return root + encodeURI(path).replace(/#/g, "%23");
 }
 // icon for anything with {icon, species, dex}; falls back to a file-name search in the game folder
 const FOUND = {};
+const MISS = {};
+function cachedIcon(species) {
+  // icons the game draws into PokeRPGLink/cache in the background (Pokédex)
+  const c = "PokeRPGLink/cache/icon_" + species + "_0.png";
+  if (IMG[c]) return c;
+  if (!B.image || MISS[c] > Date.now() - 3000) return null;
+  let d = ""; try { d = B.image(c); } catch (e) {}
+  if (d) { IMG[c] = d; return c; }
+  MISS[c] = Date.now();
+  return null;
+}
 function iconPath(o) {
   if (!o) return null;
   if (o.icon) return o.icon;
+  if (o.species) { const c = cachedIcon(o.species); if (c) return c; }
   if (!B.findIcon || !o.species) return null;
   const k = o.species + "|" + (o.dex || 0);
   if (!(k in FOUND)) { try { FOUND[k] = B.findIcon(o.species, o.dex || 0) || null; } catch (e) { FOUND[k] = null; } }
@@ -107,6 +131,10 @@ try { if (B.resetState) B.resetState(); } catch (e) {}   // a reload (skin chang
 function poll() {
   try {
     const t = B.readState();
+    if (t && B.fileTime && Date.now() - B.fileTime("state.json") > 6000 && !S) {
+      // first state after opening the panel is old: the game isn't running
+      S = JSON.parse(t); S._stale = true; render(true); return;
+    }
     if (t) {
       const prevGame = S && S.game ? S.game.title : null;
       const prevState = S;
@@ -126,6 +154,12 @@ function poll() {
     } else if (S && Date.now() - lastStateAt > 4000) {
       const mt = B.fileTime ? B.fileTime("state.json") : Date.now();
       if (Date.now() - mt > 6000 && !S._stale) { S._stale = true; render(true); }
+    }
+    if (S && S._stale) {
+      // the game was closed (or the panel just reopened on an old save of the screen):
+      // show the waiting screen with Play, and pick the game back up as soon as it writes again
+      const mt = B.fileTime ? B.fileTime("state.json") : 0;
+      if (mt && Date.now() - mt < 3000) { S._stale = false; try { B.resetState && B.resetState(); } catch (e) {} }
     }
   } catch (e) { console.log("poll error", e); }
 }
@@ -157,16 +191,24 @@ function loadSettings() {
 // keeps whatever the panel is using; picking a skin while it's running updates it.
 function gameKey() { return S && S.game && S.game.title ? String(S.game.title) : null; }
 function rememberLook() {
+  // a pick made while no game is connected still counts: the next game to connect keeps it
   const k = gameKey();
-  if (!k) return;
+  if (!k) { settings.lastPick = { skin: settings.skin, typePack: settings.typePack || "auto", t: Date.now() }; return; }
   settings.perGame = settings.perGame || {};
-  settings.perGame[k] = { skin: settings.skin, typePack: settings.typePack || "auto" };
+  settings.perGame[k] = { skin: settings.skin, typePack: settings.typePack || "auto", t: Date.now() };
 }
 function applyGameLook() {
   const k = gameKey();
   if (!k) return false;
   const look = (settings.perGame || {})[k];
-  if (!look) { rememberLook(); saveSettings(); return false; }
+  const pick = settings.lastPick;
+  if (!look || (pick && pick.t > (look.t || 0))) {
+    settings.perGame = settings.perGame || {};
+    settings.perGame[k] = { skin: settings.skin, typePack: settings.typePack || "auto", t: Date.now() };
+    delete settings.lastPick;   // only the next game to connect adopts a pick made without one
+    saveSettings();
+    return false;
+  }
   const skinChanged = look.skin && look.skin !== settings.skin;
   const packChanged = (look.typePack || "auto") !== (settings.typePack || "auto");
   if (!skinChanged && !packChanged) return false;
@@ -347,7 +389,7 @@ document.addEventListener("pointerdown", wake, true);
 
 /* ---------------- render ---------------- */
 function render(force) {
-  if (!S) return renderOffline();
+  if (!S || S._stale) return renderOffline();
   const inBattle = S.mode === "battle" && S.battle;
   const key = JSON.stringify([S.frame && 0, S, ui, sheet && sheet.kind, inBattle]);
   if (!force && key === lastRender) return;
@@ -368,6 +410,7 @@ function render(force) {
   }
   if (inBattle) main.insertAdjacentHTML("afterbegin", pluginSections("battle"));
   document.body.dataset.view = view;
+  document.body.classList.toggle("battle-busy", inBattle && battleLocked());
   document.body.dataset.mode = S.mode;
   document.body.dataset.double = inBattle && (S.battle.double || S.battle.battlers.filter((x) => !x.own).length > 1) ? "1" : "0";
   emit("render", view, main);
@@ -601,7 +644,8 @@ function renderBattle() {
     const sp = b.specials || {};
     const can = sp.mega ? "Mega Evolve" : sp.z ? "Z-Move" : sp.ultra ? "Ultra Burst" : null;
     if (can) h += `<div class="specials"><button data-act="special" aria-pressed="${ui.special}">${can}${ui.special ? " on" : ""}</button></div>`;
-    h += `<div class="waiting">${b.menu === "command" || b.menu === "fight" ? "Tap a move to use it · long-press for details" : "Waiting for the battle…"}</div>`;
+    const locked = battleLocked();
+    h += `<div class="waiting">${locked ? "Waiting for the turn…" : b.menu === "command" || b.menu === "fight" ? "Tap a move to use it · long-press for details" : "Waiting for the battle…"}</div>`;
   }
   return h;
 }
@@ -694,7 +738,7 @@ function loadDex() {
 }
 function renderDex() {
   loadDex();
-  if (!dex) return `<div class="empty">Opening the Pokédex…</div>`;
+  if (!dex) return `<div class="empty">Opening the Pokédex…<br><span class="muted sm">The first time, the game can pause for a moment while it gathers every Pokémon.</span></div>`;
   let list = dex.species.filter((s) => (ui.dexFilter === "all" || (ui.dexFilter === "seen" ? s.seen : s.owned)));
   if (ui.dexType) list = list.filter((s) => s.seen && s.types.includes(ui.dexType));
   const owned = dex.species.filter((s) => s.owned).length, seen = dex.species.filter((s) => s.seen).length;
@@ -904,6 +948,12 @@ function renderSheet() {
     h += `<h2>Dim when idle</h2><div class="seg"><button data-dimidle="1" aria-current="${!!settings.dimIdle}">On</button><button data-dimidle="0" aria-current="${!settings.dimIdle}">Off</button></div>
       <p class="hint">Dims the panel slightly after 15 seconds without a touch, to protect the OLED screen. Still easy to read; any touch brings it back.</p>`;
     h += `<h2>Vibration</h2><div class="seg"><button data-haptics="1" aria-current="${settings.haptics !== false}">On</button><button data-haptics="0" aria-current="${settings.haptics === false}">Off</button></div>`;
+    if (S && !S._stale) {
+      const di = S.diag || {};
+      let iconMsg = "no Pokémon in your party yet";
+      if ((S.party || []).length) iconMsg = !di.icon ? "the game didn't give an icon (see PokeRPGLink/log.txt in the game folder)" : img(di.icon).startsWith("data:") ? "working" : "can't read " + di.icon;
+      h += `<h2>About</h2><p class="hint">Mod version ${esc(S.v || "?")} · ${esc((S.game && S.game.title) || "")}<br>Pokémon icons: ${esc(iconMsg)}${di.jobs ? ` · drawing ${di.jobs} more in the background` : ""}</p>`;
+    }
     if (B.openSetup) {
       const { rts } = launchInfo();
       h += `<h2>Game &amp; setup</h2><div class="actions">${rts.length ? `<button data-act="play" data-pkg="${esc(rts[0].id)}">Open ${esc(rts[0].label)} on top</button>` : ""}<button data-act="setup">PokeRPGLink setup</button></div>`;
