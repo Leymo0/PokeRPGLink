@@ -756,9 +756,12 @@ function loadDex() {
 function renderDex() {
   loadDex();
   if (!dex) return `<div class="empty">Opening the Pokédex…<br><span class="muted sm">The first time, the game can pause for a moment while it gathers every Pokémon.</span></div>`;
-  let list = dex.species.filter((s) => (ui.dexFilter === "all" || (ui.dexFilter === "seen" ? s.seen : s.owned)));
+  // Same list as the game's own Pokédex: it stops at the last species you've seen
+  const inDex = dex.lastSeen != null ? dex.species.filter((s) => s.dex > 0 && s.dex <= dex.lastSeen) : dex.species;
+  let list = inDex.filter((s) => (ui.dexFilter === "all" || (ui.dexFilter === "seen" ? s.seen : s.owned)));
   if (ui.dexType) list = list.filter((s) => s.seen && s.types.includes(ui.dexType));
-  const owned = dex.species.filter((s) => s.owned).length, seen = dex.species.filter((s) => s.seen).length;
+  const num = (v) => (typeof v === "number" ? v : null);
+  const owned = num(dex.gameOwned) ?? dex.species.filter((s) => s.owned).length, seen = num(dex.gameSeen) ?? dex.species.filter((s) => s.seen).length;
   const allTypes = (dex.types || []).filter((t) => !["QMARKS", "SHADOW"].includes(t.id));
   let h = `<div class="pockets typefilter"><button data-dext="" aria-current="${!ui.dexType}">Any type</button>${allTypes.map((t) => `<button class="t-${esc(t.id)}" data-dext="${esc(t.id)}" aria-current="${ui.dexType === t.id}">${esc(t.name)}</button>`).join("")}</div>
     <div class="seg">${[["all", "All"], ["seen", `Seen ${seen}`], ["owned", `Caught ${owned}`]].map(([k, n]) => `<button data-dexf="${k}" aria-current="${ui.dexFilter === k}">${n}</button>`).join("")}</div>`;
