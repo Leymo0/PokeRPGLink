@@ -187,9 +187,10 @@ check "ability-changed move type shown (Normal -> Water)", qm["type"] == "WATER"
 check "attack stage shows as a power boost", qm["boosts"].any? { |x| x["label"] == "Attack +1" && x["mult"] == 1.5 }
 # Rejuvenation keeps field data inside the battle's field object
 class FieldS
-  def moveData(m); nil; end
-  def typeData(t); t == :NORMAL ? { mult: 1.5 } : nil; end
-  def data; Struct.new(:name).new("City"); end
+  def moveData(m); m == :QUICKATTACK ? { fieldchange: :INDOOR, moveeffect: "@battle.field.counter += 1" } : nil; end
+  def typeData(t); t == :NORMAL ? { mult: 1.5, multtext: 1 } : nil; end
+  def statusMoves; [:THUNDERWAVE]; end
+  def data; Struct.new(:name, :typemessagelist, :movemessagelist).new("City", ["The hustle and bustle of the city!"], []); end
 end
 class BMove
   def moveFieldBoost; 1; end
@@ -199,7 +200,10 @@ def qa.pbType(attacker, type = @type); :NORMAL; end
 frames(20)
 qm = state["battle"]["moves"].find { |m| m["id"] == "QUICKATTACK" }
 check "field boost from the game's field helpers (City Normal x1.5)", qm["field"] == 1.5 && qm["boosts"].any? { |x| x["label"] == "City" && x["mult"] == 1.5 } && qm["power"] == 2.25
-class FieldS; remove_method :moveData, :typeData, :data; end
+tw2 = state["battle"]["moves"].find { |m| m["id"] == "THUNDERWAVE" }
+check "moves that change the field are marked", qm["fieldChange"].to_s != "" && qm["fieldBuilds"] && qm["fieldMsg"] == "The hustle and bustle of the city!"
+check "status moves boosted by the field are marked", tw2["fieldStatus"] == true
+class FieldS; remove_method :moveData, :typeData, :data, :statusMoves; end
 class BMove; remove_method :moveFieldBoost, :typeFieldBoost; end
 foe = b["battlers"].find { |x| !x["own"] }
 check "foe hp pct + stages + effects", foe["hpPct"] == 75 && foe["stages"]["atk"] == 1 && foe["stages"]["spe"] == -1 && foe["effects"] == ["Confusion"]
