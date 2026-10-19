@@ -1,0 +1,21 @@
+@import url("../daisy/skin.css");
+:root {
+  --d-bg: #000000; --d-bg2: #050508; --d-bar: #000000;
+  --d-card: #101018; --d-card-text: #eef1ff; --d-card-muted: #9aa3c4;
+  --d-ring: rgba(0,0,0,.9);
+  --panel-2: #1b1b28; --line: #23233a;
+}
+#bar, #tabs { box-shadow: none; border-color: #15151f; }
+#tabs button[aria-current="true"] { background: #eef1ff; color: #000; }
+.fighter, .mini, .tile, .row-btn, .tgt, .logline, .savecard, .bstrip button { box-shadow: none; border: 1px solid #1c1c2a; }
+.bstrip button { background: #101018; color: var(--d-card-text); }
+.hp, .stats .bar { background: #20202e; }
+.chip, .seg, .ico .fallback { background: #1b1b28; color: var(--d-card-text); }
+.seg button[aria-current="true"] { background: #2a2a3d; color: #fff; }
+.move { box-shadow: inset 0 -4px 0 rgba(0,0,0,.35), 0 0 0 1px rgba(255,255,255,.08); }
+#sheet { background: #0b0b12; }
+.chip.up { color: #9ff0b8; } .chip.down { color: #ffb0a8; }
+.logline.spacer { border: 0; }
+/* slightly calmer type colours on black */
+.move { background-image: linear-gradient(100deg, rgba(255,255,255,.22) 0%, rgba(0,0,0,.08) 55%, rgba(0,0,0,.28) 100%); filter: saturate(.82) brightness(.9); }
+.move.nopp { filter: grayscale(.85) brightness(.7); }

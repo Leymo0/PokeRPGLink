@@ -1,0 +1,11 @@
+{
+ "name": "Daisy OLED",
+ "author": "Leymo",
+ "version": "1.0",
+ "description": "The Daisy look on true black \u2014 easy on the Thor's OLED and battery.",
+ "typeIcons": [
+  "Dark icons",
+  "dark",
+  "black"
+ ]
+}

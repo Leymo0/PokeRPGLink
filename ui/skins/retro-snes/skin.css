@@ -1,0 +1,57 @@
+@import url("../daisy/skin.css");
+/* Super Retro — grey console plastic, purple trim, red / yellow / blue / green face buttons. */
+:root {
+  --s-plastic: #d4d2da;   /* console grey */
+  --s-plastic-d: #a9a6b3; /* darker grey */
+  --s-slate: #4a4752;     /* dark grey trim */
+  --s-purple: #5b4b9e;    /* trim purple */
+  --s-lav: #b7aee0;       /* lavender */
+  --s-red: #d13a33; --s-yellow: #e9b92a; --s-blue: #2f5cb8; --s-green: #2f9b55;
+
+  --d-bg: #bdbac6; --d-bg2: #b5b2bf;
+  --d-card: #e7e5ec; --d-card-text: #2a2832; --d-card-muted: #6b6878;
+  --d-own: var(--s-purple); --d-foe: var(--s-red); --d-bar: var(--s-slate);
+  --d-ring: #f3f2f6;
+  --panel-2: #d9d7e0; --line: #b9b6c4; --amber: var(--s-purple);
+  --fight: var(--s-red); --bag: var(--s-yellow); --mon: var(--s-green); --run: var(--s-blue);
+  --r-btn: 12px;
+}
+/* moulded plastic ridges */
+body { background: var(--d-bg) repeating-linear-gradient(180deg, transparent 0 10px, rgba(255,255,255,.18) 10px 11px, rgba(0,0,0,.06) 11px 12px); }
+#bar { background: linear-gradient(180deg, #5a5763, var(--s-slate)); box-shadow: 0 3px 0 var(--s-purple); }
+/* the four coloured dots, like the controller face */
+#bar::after { content: ""; width: 44px; height: 14px; flex: none; margin-left: 2px;
+  background:
+    radial-gradient(circle at 7px 7px, var(--s-blue) 5px, transparent 5.5px),
+    radial-gradient(circle at 18px 7px, var(--s-green) 5px, transparent 5.5px),
+    radial-gradient(circle at 29px 7px, var(--s-yellow) 5px, transparent 5.5px),
+    radial-gradient(circle at 40px 7px, var(--s-red) 5px, transparent 5.5px); }
+#tabs { background: linear-gradient(180deg, var(--s-slate), #3b3842); box-shadow: 0 -3px 0 var(--s-purple); }
+#tabs button[aria-current="true"] { background: var(--s-lav); color: #241e44; }
+#main, #main h2 { color: #3a3744; }
+
+.fighter, .mini, .tile, .row-btn, .tgt, .logline, .savecard, .bstrip button {
+  border-radius: 10px; box-shadow: inset 0 1px 0 #fff, 0 2px 0 var(--s-plastic-d);
+}
+.fighter::before { background: var(--s-purple); }
+.fighter.foe::before { background: var(--s-red); }
+.bstrip .fieldchip { background: var(--s-purple); color: #fff; }
+.hp { background: #c9c6d2; } .hp > i { background: var(--s-green); } .hp.mid > i { background: var(--s-yellow); } .hp.low > i { background: var(--s-red); }
+
+/* moves: concave grey plastic keys; colour comes from the type icon */
+.move { background: linear-gradient(180deg, #f1f0f4, #cfccd8) !important; color: #2a2832; text-shadow: none;
+  border-radius: 14px; box-shadow: inset 0 -4px 0 var(--s-plastic-d), inset 0 1px 0 #fff, 0 2px 0 #8e8a99; }
+.move .ticon { box-shadow: 0 0 0 3px #f3f2f6, 0 1px 3px rgba(0,0,0,.35); }
+.move .meff { color: var(--s-purple) !important; }
+.move.e-super .meff { color: var(--s-green) !important; } .move.e-weak .meff, .move.e-none .meff { color: var(--s-red) !important; }
+.move .ppbig { color: #3a3744; }
+.move::after { content: ""; position: absolute; left: 14px; right: 14px; bottom: 6px; height: 2px; border-radius: 2px; background: var(--t); opacity: .55; }
+
+/* the big four = the four face buttons */
+#tabs.battle button { border-radius: 999px; color: #fff; text-shadow: 0 1px 0 rgba(0,0,0,.35);
+  box-shadow: inset 0 -5px 0 rgba(0,0,0,.25), inset 0 2px 0 rgba(255,255,255,.3), 0 3px 0 #2a2832; }
+#tabs.battle .b-bag { color: #3a2a00; text-shadow: none; }
+#tabs.battle button[aria-current="true"] { outline: 3px solid var(--s-lav); outline-offset: -3px; }
+.qball { background: #f1f0f4; box-shadow: inset 0 -3px 0 var(--s-plastic-d), 0 2px 0 #8e8a99; }
+.toast { background: var(--s-slate); color: #fff; } .toast.ok { background: var(--s-green); color: #fff; } .toast.error { background: var(--s-red); color: #fff; }
+#bar .period { background: rgba(255,255,255,.16); color: #fff; }

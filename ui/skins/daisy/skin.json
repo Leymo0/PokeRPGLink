@@ -1,0 +1,11 @@
+{
+ "name": "Daisy",
+ "author": "Leymo",
+ "version": "1.0",
+ "description": "Bright, bouncy battle look: type icons on every move, big PP, click sounds. Blue.",
+ "typeIcons": [
+  "White icons",
+  "light",
+  "white"
+ ]
+}

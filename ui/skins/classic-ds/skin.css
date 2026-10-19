@@ -1,0 +1,27 @@
+/* Classic DS — a light skin. Most of the panel is driven by these variables. */
+:root {
+  --ink: #dfe9f2;      /* background */
+  --panel: #ffffff;    /* cards */
+  --panel-2: #c9dbea;  /* chips, secondary buttons */
+  --line: #a9c1d6;
+  --text: #1d2a3a;
+  --muted: #5d7186;
+  --amber: #f08a24;    /* selection / primary */
+  --caught: #1d9a55;
+  --fight: #e2453a; --bag: #f0a021; --mon: #2fa35c; --run: #3a78d0;
+  --r-btn: 10px;
+}
+#bar, #tabs { background: linear-gradient(#5a8fc4, #3d6fa6); border-color: #2c5583; color: #fff; }
+#bar .sub, #tabs button { color: #e3eefa; }
+#tabs button[aria-current="true"] { background: #fff; color: #2c5583; }
+.hp, .stats .bar { background: #c9d6e3; }
+.ico .fallback { background: var(--panel-2); color: var(--muted); }
+.ico.shadow .fallback { background: #3b4a5c; color: #3b4a5c; }
+.mini, .fighter, .tile, .row-btn, .tgt { box-shadow: 0 1px 0 #a9c1d6; }
+#sheet { background: #eef4fa; }
+.toast { background: #1d2a3a; color: #fff; }
+.toast.ok { background: #1d9a55; color: #fff; } .toast.error { background: #c0392b; color: #fff; }
+.bstrip .fieldchip { background: linear-gradient(90deg, #8a6cd6, #5a8fc4); color: #fff; }
+.chip.up { color: #1d8a4c; } .chip.down { color: #c0392b; }
+#bar .period { background: rgba(255,255,255,.2); color: #fff; }
+.logline { background: #fff; color: #1d2a3a; }

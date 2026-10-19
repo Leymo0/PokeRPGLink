@@ -1,0 +1,6 @@
+.ct-bar { background: var(--panel); border-radius: 12px; padding: 8px 10px; margin-bottom: 8px; font-weight: 700; font-size: 13px; display: grid; gap: 6px; }
+.ct-track { height: 8px; border-radius: 4px; background: #120e22; overflow: hidden; }
+.ct-track i { display: block; height: 100%; background: var(--caught); }
+.ct-banner { border-radius: 10px; padding: 5px 10px; margin-bottom: 5px; font-weight: 800; font-size: 13px; }
+.ct-banner.new { background: var(--amber); color: var(--ink); }
+.ct-banner.old { background: var(--panel-2); color: var(--muted); }

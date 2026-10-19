@@ -1,0 +1,65 @@
+plugins {
+    id "com.android.application"
+}
+
+android {
+    namespace "com.leymo.pokerpglink"
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.leymo.pokerpglink"
+        minSdk 30
+        targetSdk 33
+        // GitHub releases set these from the tag (v1.2.3 → 1.2.3); local builds use the defaults
+        versionCode((System.getenv("VERSION_CODE") ?: "1") as int)
+        versionName(System.getenv("VERSION_NAME") ?: "1.0.0")
+    }
+
+    // Release signing: the same key must sign every version, or Android (and Obtainium)
+    // refuses to update. The key comes from environment variables on GitHub, or from
+    // android/keystore.properties on your PC (never commit either the key or that file).
+    def ksProps = new Properties()
+    def ksFile = rootProject.file("keystore.properties")
+    if (ksFile.exists()) ksFile.withInputStream { ksProps.load(it) }
+    def ksPath = System.getenv("KEYSTORE_FILE") ?: ksProps.getProperty("storeFile")
+    signingConfigs {
+        release {
+            if (ksPath) {
+                storeFile file(ksPath)
+                storePassword System.getenv("KEYSTORE_PASSWORD") ?: ksProps.getProperty("storePassword")
+                keyAlias System.getenv("KEY_ALIAS") ?: ksProps.getProperty("keyAlias")
+                keyPassword System.getenv("KEY_PASSWORD") ?: ksProps.getProperty("keyPassword")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig ksPath ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    // The touch UI and the in-game mod live outside the Android project so
+    // they can be edited/tested on their own; they are packed into assets here.
+    sourceSets {
+        main {
+            assets.srcDirs = ["src/main/assets", "$rootDir/../build-assets"]
+        }
+    }
+}
+
+// Copy ../ui -> assets/ui and ../mod/PokeRPGLink.rb -> assets/PokeRPGLink.rb before every build.
+tasks.register("bundlePokeRPGAssets", Copy) {
+    def out = file("$rootDir/../build-assets")
+    doFirst { delete out }
+    from("$rootDir/../ui") { into "ui" }
+    from("$rootDir/../mod") { include "PokeRPGLink.rb" }
+    into out
+}
+preBuild.dependsOn("bundlePokeRPGAssets")

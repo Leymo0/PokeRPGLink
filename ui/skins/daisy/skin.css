@@ -1,0 +1,87 @@
+/* ===== Daisy — colourful, bouncy battle UI =====
+   The variants (Daisy White, Daisy OLED) import this file and only change the variables below. */
+:root {
+  --d-bg: #2f6fd6;            /* page */
+  --d-bg2: #3b7ce0;           /* stripe */
+  --d-card: #ffffff;          /* cards & sheets */
+  --d-card-text: #1d2b44;
+  --d-card-muted: #5a6b86;
+  --d-own: #3a86ff;           /* your side header */
+  --d-foe: #ff4d5e;           /* foe header */
+  --d-bar: #1d4fa8;           /* top bar */
+  --d-btn-text: #ffffff;
+  --d-ring: rgba(255,255,255,.95);
+
+  --ink: var(--d-bg); --panel: var(--d-card); --panel-2: #e7eefb; --line: #c9d7f0;
+  --text: var(--d-card-text); --muted: var(--d-card-muted); --amber: #ffb627;
+  --fight: #ff4d5e; --bag: #ffb627; --mon: #2ec27e; --run: #3a86ff;
+  --r-btn: 16px; --r-chip: 8px;
+}
+
+body { background: var(--d-bg) repeating-linear-gradient(135deg, transparent 0 18px, var(--d-bg2) 18px 36px); }
+#bar { background: var(--d-bar); border: 0; color: #fff; box-shadow: 0 2px 0 rgba(0,0,0,.15); }
+#bar .sub { color: rgba(255,255,255,.75); }
+#bar .padbtn { background: rgba(255,255,255,.16); color: #fff; }
+#tabs { background: var(--d-bar); border: 0; }
+#tabs button { color: rgba(255,255,255,.75); }
+#tabs button[aria-current="true"] { background: #fff; color: var(--d-bar); }
+#main { color: #fff; }
+#main h2 { color: rgba(255,255,255,.85); }
+
+/* cards: white, with a coloured header strip like a battle box */
+.fighter, .mini, .tile, .row-btn, .tgt, .logline, .savecard {
+  background: var(--d-card); color: var(--d-card-text); border-radius: 16px;
+  box-shadow: 0 3px 0 rgba(0,0,0,.18);
+}
+.fighter { border: 0; padding-top: 9px; position: relative; overflow: hidden; }
+.fighter::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 5px; background: var(--d-own); }
+.fighter.foe::before { background: var(--d-foe); }
+.fighter.foe, .fighter.own, .mini.foe, .mini.own { border-left: 0; border-top: 0; border-bottom: 0; }
+.mini.foe { box-shadow: inset 0 4px 0 var(--d-foe), 0 3px 0 rgba(0,0,0,.18); }
+.mini.own { box-shadow: inset 0 4px 0 var(--d-own), 0 3px 0 rgba(0,0,0,.18); }
+.fighter .top b, .mini .r1 b { color: var(--d-card-text); }
+.hp, .stats .bar { background: #dbe4f3; }
+.chip { background: #e7eefb; color: var(--d-card-text); }
+.bstrip button { background: rgba(255,255,255,.92); color: var(--d-card-text); box-shadow: 0 2px 0 rgba(0,0,0,.15); }
+.bstrip .fieldchip { background: linear-gradient(90deg, #8f6bff, #3a86ff); color: #fff; }
+.logline { color: var(--d-card-text); }
+.logline.spacer { background: none; box-shadow: none; border: 0; }
+.chip.up { color: #13894a; } .chip.down { color: #c0392b; }
+.ico .fallback { background: #e7eefb; color: var(--d-card-muted); }
+
+/* ---- the moves: type icon in a white ring, name, effectiveness, big PP ---- */
+.moves { gap: 8px; }
+.move {
+  display: grid; grid-template-columns: 36px 1fr auto; grid-template-rows: auto auto; column-gap: 8px; align-items: center;
+  min-height: 52px; padding: 6px 12px 6px 7px; border-radius: 999px;
+  background-image: linear-gradient(100deg, rgba(255,255,255,.42) 0%, rgba(255,255,255,.12) 55%, rgba(0,0,0,.08) 100%);
+  box-shadow: inset 0 -4px 0 rgba(0,0,0,.22), 0 3px 0 rgba(0,0,0,.18);
+  color: var(--d-btn-text); text-shadow: 0 1px 2px rgba(0,0,0,.45);
+}
+.move .ticon { display: block; grid-row: 1 / 3; width: 36px; height: 36px; padding: 7px; border-radius: 50%;
+  background: var(--t); box-shadow: 0 0 0 3px var(--d-ring), 0 2px 3px rgba(0,0,0,.3); }
+.move .mn { grid-column: 2; font-size: 16px; line-height: 18px; align-self: end; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.move .meff { display: block; grid-column: 2; font-size: 12px; font-weight: 700; opacity: .95; align-self: start; }
+.move .ppbig { display: block; grid-column: 3; grid-row: 1 / 3; font-size: 13px; font-weight: 700; }
+.move .ppbig b { font-size: 20px; }
+.move .ml, .move .eff { display: none; }
+.move.e-super .meff { color: #fff6a8; }
+.move.e-weak .meff, .move.e-none .meff { color: #ffd9d9; }
+.move.e-none { filter: saturate(.55); }
+.move.nopp { filter: grayscale(.85) brightness(.85); }
+
+/* big four */
+#tabs.battle button { border-radius: 999px; box-shadow: inset 0 -5px 0 rgba(0,0,0,.25), 0 3px 0 rgba(0,0,0,.2); }
+#tabs.battle button[aria-current="true"] { outline: 3px solid #fff; outline-offset: -3px; }
+
+/* sheets */
+#sheet { background: var(--d-card); color: var(--d-card-text); border-top: 0; box-shadow: 0 -6px 0 rgba(0,0,0,.12); }
+#sheet h2 { color: var(--d-card-muted); }
+.prose { color: var(--d-card-text); }
+.seg { background: #e7eefb; }
+.seg button[aria-current="true"] { background: #fff; color: var(--d-card-text); box-shadow: 0 2px 0 rgba(0,0,0,.12); }
+.toast { box-shadow: 0 4px 0 rgba(0,0,0,.2); }
+
+/* bounce helper (skin.js adds it) */
+.d-press { transition: transform .08s ease-out; }
+#bar .period { background: rgba(255,255,255,.18); color: #fff; }

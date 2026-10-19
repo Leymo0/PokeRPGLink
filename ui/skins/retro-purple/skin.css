@@ -1,0 +1,63 @@
+@import url("../daisy/skin.css");
+/* Retro Purple — dark violet, frosted glass panels, neon outlines. */
+:root {
+  --p-neon: #c77dff;      /* neon violet */
+  --p-pink: #ff4fd8;      /* neon pink */
+  --p-cyan: #4cf2ff;      /* neon cyan */
+  --p-lime: #b6ff3c;      /* neon lime */
+  --p-glass: rgba(150, 90, 255, .16);
+  --p-glass-2: rgba(150, 90, 255, .28);
+
+  --d-bg: #10061f; --d-bg2: #150828;
+  --d-card: var(--p-glass); --d-card-text: #f3e9ff; --d-card-muted: #b9a2dd;
+  --d-own: var(--p-cyan); --d-foe: var(--p-pink); --d-bar: rgba(20, 8, 40, .85);
+  --d-ring: var(--p-neon);
+  --panel-2: var(--p-glass-2); --line: rgba(199,125,255,.35); --amber: var(--p-neon);
+  --fight: var(--p-pink); --bag: var(--p-lime); --mon: var(--p-cyan); --run: var(--p-neon);
+  --caught: var(--p-lime);
+}
+body { background:
+  radial-gradient(120% 70% at 20% 0%, rgba(199,125,255,.28), transparent 60%),
+  radial-gradient(90% 60% at 100% 100%, rgba(255,79,216,.18), transparent 60%),
+  repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 4px),
+  var(--d-bg); }
+#bar, #tabs { background: var(--d-bar); box-shadow: 0 0 0 1px rgba(199,125,255,.35), 0 0 18px rgba(199,125,255,.25); }
+#tabs button[aria-current="true"] { background: transparent; color: var(--p-neon); box-shadow: inset 0 0 0 2px var(--p-neon), 0 0 12px rgba(199,125,255,.6); }
+#main, #main h2 { color: #f3e9ff; }
+
+/* frosted glass everywhere */
+.fighter, .mini, .tile, .row-btn, .tgt, .logline, .savecard, .bstrip button, #sheet, .seg, .chip {
+  background: var(--p-glass) !important; color: var(--d-card-text) !important;
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border: 1px solid rgba(199,125,255,.4); box-shadow: 0 0 12px rgba(199,125,255,.12);
+}
+#sheet { background: rgba(22, 9, 44, .92) !important; }
+.fighter::before { background: var(--p-cyan); box-shadow: 0 0 10px var(--p-cyan); }
+.fighter.foe::before { background: var(--p-pink); box-shadow: 0 0 10px var(--p-pink); }
+.hp { background: rgba(255,255,255,.08); }
+.hp > i { background: var(--p-lime); box-shadow: 0 0 8px var(--p-lime); }
+.hp.mid > i { background: #ffe94d; box-shadow: 0 0 8px #ffe94d; } .hp.low > i { background: var(--p-pink); box-shadow: 0 0 8px var(--p-pink); }
+
+/* moves: glass pills, neon violet edge; every type icon in the same neon */
+.move[class*="t-"], .type[class*="t-"], .ticon { --t: var(--p-neon); }
+.move { background: rgba(150, 90, 255, .2) !important; color: #fbf4ff;
+  border: 1.5px solid var(--p-neon); box-shadow: 0 0 14px rgba(199,125,255,.35), inset 0 0 18px rgba(199,125,255,.15) !important;
+  text-shadow: 0 0 8px rgba(199,125,255,.8); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.move .ticon { background: transparent !important; box-shadow: 0 0 0 2px var(--p-neon), 0 0 12px var(--p-neon) !important; }
+.move .ticon .tglyph [fill="#fff"] { fill: var(--p-neon); }
+.move .ticon .tglyph [stroke="#fff"] { stroke: var(--p-neon); }
+.move .ticon .tglyph { filter: drop-shadow(0 0 3px var(--p-neon)); }
+.move .ticon img { filter: grayscale(1) brightness(1.3) sepia(1) hue-rotate(225deg) saturate(4) drop-shadow(0 0 4px var(--p-neon)); }
+.move .meff { color: var(--p-cyan) !important; }
+.move.e-super .meff { color: var(--p-lime) !important; } .move.e-weak .meff, .move.e-none .meff { color: var(--p-pink) !important; }
+.type { background: transparent; color: var(--p-neon); box-shadow: inset 0 0 0 1px var(--p-neon); text-shadow: 0 0 6px var(--p-neon); }
+
+/* the big four: neon outlines on glass */
+#tabs.battle button { background: rgba(255,255,255,.05) !important; color: var(--b); border: 2px solid var(--b);
+  box-shadow: 0 0 14px var(--b), inset 0 0 12px rgba(255,255,255,.04); text-shadow: 0 0 8px var(--b); }
+#tabs.battle .b-fight { --b: var(--p-pink); } #tabs.battle .b-bag { --b: var(--p-lime); }
+#tabs.battle .b-mon { --b: var(--p-cyan); } #tabs.battle .b-run { --b: var(--p-neon); }
+#tabs.battle button[aria-current="true"] { outline: 0; background: rgba(255,255,255,.12) !important; }
+.qball { background: rgba(150,90,255,.2); box-shadow: 0 0 0 2px var(--p-neon), 0 0 12px var(--p-neon); }
+.chip.up { color: var(--p-lime) !important; } .chip.down { color: var(--p-pink) !important; }
+.toast { background: rgba(22,9,44,.95); color: #f3e9ff; box-shadow: 0 0 0 1px var(--p-neon), 0 0 16px rgba(199,125,255,.5); }

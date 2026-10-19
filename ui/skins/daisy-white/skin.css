@@ -1,0 +1,13 @@
+@import url("../daisy/skin.css");
+:root {
+  --d-bg: #e9f0fb; --d-bg2: #e1eaf8; --d-bar: #ffffff;
+  --d-card: #ffffff; --d-card-text: #1d2b44; --d-card-muted: #5a6b86;
+}
+#bar, #tabs { color: var(--d-card-text); box-shadow: 0 2px 0 #d3def0; }
+#bar .sub { color: var(--d-card-muted); }
+#bar .padbtn { background: #e7eefb; color: var(--d-card-text); }
+#tabs button { color: var(--d-card-muted); }
+#tabs button[aria-current="true"] { background: #3a86ff; color: #fff; }
+#main, #main h2 { color: var(--d-card-text); }
+.fighter, .mini, .tile, .row-btn, .tgt, .logline, .savecard, .bstrip button { box-shadow: 0 2px 0 #cfdaee; }
+#bar .period { background: #e7eefb; color: var(--d-card-text); }

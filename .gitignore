@@ -1,0 +1,12 @@
+build-assets/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.iml
+.idea/
+
+# signing key: never commit
+*.jks
+*.keystore
+android/keystore.properties

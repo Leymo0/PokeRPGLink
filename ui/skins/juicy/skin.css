@@ -1,0 +1,3 @@
+/* Juicy Battles — buttons squash a little when pressed */
+.move:active, #tabs.battle button:active, .tile:active, .row-btn:active { transform: scale(.96); transition: transform .06s; }
+.juicy-float { position: fixed; pointer-events: none; font: 800 18px var(--ui); z-index: 40; text-shadow: 0 2px 0 rgba(0,0,0,.5); }

@@ -1,0 +1,55 @@
+@import url("../daisy/skin.css");
+/* Matcha — matcha green, cream and wood. Moves and type icons share one green;
+   the type is told apart by its symbol. */
+:root {
+  --m-matcha: #7d9a55;       /* main matcha */
+  --m-matcha-d: #5f7a3d;     /* deep matcha */
+  --m-matcha-l: #b9cc8f;     /* light matcha */
+  --m-cream: #f4efdf;
+  --m-wood: #9a6b3f;         /* oak */
+  --m-wood-d: #6e4a2a;       /* walnut */
+  --m-wood-l: #c79a6b;
+
+  --d-bg: #e3e8cf; --d-bg2: #dde3c6;
+  --d-card: var(--m-cream); --d-card-text: #3b2a1a; --d-card-muted: #7a6650;
+  --d-own: var(--m-matcha); --d-foe: var(--m-wood);
+  --d-bar: var(--m-wood-d);
+  --d-ring: var(--m-wood-l);
+  --panel-2: #e6e0c9; --line: #d4c9a8; --amber: var(--m-matcha);
+  --fight: var(--m-matcha-d); --bag: var(--m-wood); --mon: var(--m-matcha); --run: var(--m-wood-d);
+  --caught: var(--m-matcha-d);
+}
+/* wood grain on the bars */
+#bar, #tabs {
+  background-color: var(--m-wood-d);
+  background-image:
+    repeating-linear-gradient(92deg, rgba(255,255,255,.04) 0 3px, transparent 3px 11px, rgba(0,0,0,.05) 11px 13px, transparent 13px 22px),
+    linear-gradient(180deg, #7a5432, #5e3f23);
+}
+body { background: var(--d-bg) repeating-linear-gradient(135deg, transparent 0 22px, var(--d-bg2) 22px 44px); }
+#main, #main h2 { color: #4a3a26; }
+#tabs button[aria-current="true"] { background: var(--m-matcha-l); color: #2f2414; }
+#bar .padbtn { background: rgba(255,255,255,.12); }
+
+/* every move and every type chip: the same matcha */
+.move[class*="t-"], .type[class*="t-"], .tgt, .ticon { --t: var(--m-matcha); }
+.move { background-image: linear-gradient(180deg, rgba(255,255,255,.18), rgba(0,0,0,.06)) !important;
+  box-shadow: inset 0 -4px 0 var(--m-matcha-d), 0 3px 0 rgba(110,74,42,.35); }
+.move .ticon { background: var(--m-matcha-d) !important; box-shadow: 0 0 0 3px var(--m-wood-l), 0 0 0 5px var(--m-wood-d); }
+.move .ticon .tglyph [fill="#fff"] { fill: var(--m-cream); }
+.move .ticon .tglyph [stroke="#fff"] { stroke: var(--m-cream); }
+.move .ticon img { filter: grayscale(1) sepia(.55) hue-rotate(35deg) saturate(1.3) brightness(.95); }
+.move .meff { color: #f4f8e6 !important; }
+.move.e-super .meff { color: #fff6c9 !important; }
+.type { text-shadow: none; }
+.fighter, .mini, .tile, .row-btn, .tgt, .logline, .savecard, .bstrip button { border: 1.5px solid var(--line); box-shadow: 0 2px 0 rgba(110,74,42,.18); }
+.bstrip .fieldchip { background: var(--m-matcha); color: var(--m-cream); }
+.hp > i { background: var(--m-matcha); } .hp.mid > i { background: #c9a14a; } .hp.low > i { background: #b4583a; }
+.chip.up { color: var(--m-matcha-d); } .chip.down { color: #a4482c; }
+#tabs.battle button { box-shadow: inset 0 -5px 0 rgba(0,0,0,.22), 0 3px 0 rgba(60,40,20,.3); color: var(--m-cream); }
+#tabs.battle button[aria-current="true"] { outline-color: var(--m-cream); }
+.qball { background: var(--m-cream); box-shadow: 0 0 0 2px var(--m-wood-l); }
+.toast { background: var(--m-cream); color: #3b2a1a; } .toast.ok { background: var(--m-matcha-l); } .toast.error { background: #e8c2ad; }
+/* statuses in earth tones instead of bright colours */
+.status { background: var(--m-wood) !important; color: var(--m-cream); }
+#bar .period { background: rgba(255,255,255,.14); color: var(--m-cream); }
