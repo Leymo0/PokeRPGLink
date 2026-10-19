@@ -177,6 +177,30 @@ it = b["moves"].find { |m| m["name"] == "Iron Tail" }
 check "iron tail vs poison neutral", it["vs"][0]["mult"] == 1.0
 tw = b["moves"].find { |m| m["name"] == "Thunder Wave" }
 check "status move has no mult", tw["vs"][0]["mult"].nil?
+# The real in-battle type comes from the game's pbType (abilities like Liquid Voice)
+me0 = battle.battlers[0]
+qa = me0.moves.find { |m| m.move == :QUICKATTACK }
+def qa.pbType(attacker, type = @type); :WATER; end
+frames(20)
+qm = state["battle"]["moves"].find { |m| m["id"] == "QUICKATTACK" }
+check "ability-changed move type shown (Normal -> Water)", qm["type"] == "WATER" && qm["baseType"] == "NORMAL"
+check "attack stage shows as a power boost", qm["boosts"].any? { |x| x["label"] == "Attack +1" && x["mult"] == 1.5 }
+# Rejuvenation keeps field data inside the battle's field object
+class FieldS
+  def moveData(m); nil; end
+  def typeData(t); t == :NORMAL ? { mult: 1.5 } : nil; end
+  def data; Struct.new(:name).new("City"); end
+end
+class BMove
+  def moveFieldBoost; 1; end
+  def typeFieldBoost(type, a = nil, o = nil); type == :NORMAL ? 1.5 : 1; end
+end
+def qa.pbType(attacker, type = @type); :NORMAL; end
+frames(20)
+qm = state["battle"]["moves"].find { |m| m["id"] == "QUICKATTACK" }
+check "field boost from the game's field helpers (City Normal x1.5)", qm["field"] == 1.5 && qm["boosts"].any? { |x| x["label"] == "City" && x["mult"] == 1.5 } && qm["power"] == 2.25
+class FieldS; remove_method :moveData, :typeData, :data; end
+class BMove; remove_method :moveFieldBoost, :typeFieldBoost; end
 foe = b["battlers"].find { |x| !x["own"] }
 check "foe hp pct + stages + effects", foe["hpPct"] == 75 && foe["stages"]["atk"] == 1 && foe["stages"]["spe"] == -1 && foe["effects"] == ["Confusion"]
 check "battle party list", b["party"].length == 2 && b["party"][0]["inBattle"]
