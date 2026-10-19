@@ -82,6 +82,8 @@ Eleven built-in skins, chosen from the panel's ⚙ button and remembered **per g
 | Other Essentials v19–v21 games with packed scripts but a `Data/PluginScripts.rxdata` | `Plugins/PokeRPGLink/` + loader (as Tectonic) | Generic Essentials adapter — should work, less tested |
 | Older games with everything packed in `Scripts.rxdata` (Insurgence, Uranium, …) | — | Not supported: there's no safe place to add a mod |
 
+**Your game isn't listed, or only half works?** [Request it here](https://github.com/Leymo0/PokeRPGLink/issues/new?template=request-game.yml). Play it once with PokeRPGLink installed and attach `<game folder>/PokeRPGLink/log.txt`: it shows exactly what works and what doesn't, which is usually all that's needed to add support.
+
 **How the plugin loader works:** release builds of Essentials v19+ only run the plugins compiled into `Data/PluginScripts.rxdata` (the `Plugins` folder is re-read only in debug mode). The app appends one tiny plugin to that file — a loader that runs `Plugins/PokeRPGLink/PokeRPGLink.rb` — and keeps a backup next to it (`PluginScripts.rxdata.pokerpglink-backup`). A game update replaces that file; the app notices and adds the loader again the next time you open it.
 
 Add several games in the app — the panel follows whichever one is running. The app reads each game's own files to decide where the mod goes, so you never have to know whether it's `patch/Mods`, `Data/Mods` or `Data/Scripts`.
