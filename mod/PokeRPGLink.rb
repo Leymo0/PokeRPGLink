@@ -22,7 +22,7 @@
 
 module PokeRPGLink
   unless const_defined?(:VERSION)
-    VERSION      = "1.0.4"
+    VERSION      = "1.0.5"
     STATE_EVERY  = 8     # frames between state refreshes (~7.5x per second)
     CMD_EVERY    = 3     # frames between command-folder checks
   end
@@ -540,6 +540,7 @@ module PokeRPGLink
 
   def self.display_index(pi)
     order = (@battle.partyorder rescue nil) || (0...6).to_a
+    order = order[0] if order[0].is_a?(Array)          # Rejuvenation 14: one order per side
     order.index(pi) || pi
   end
 
@@ -919,7 +920,7 @@ module PokeRPGLink
     return cached if File.file?(cached)
     dex = (mondata(sym).dexnum rescue nil)
     names = ["icon#{sym}", "icon#{sym.to_s.downcase}"]
-    names += [format("icon%03d", dex.to_i), "icon#{dex}"] if dex
+    names += [format("icon%03d", dex.to_i), "icon#{dex}", dex.to_s, format("%03d", dex.to_i)] if dex
     names.each do |n|
       f = resolve_file("Graphics/Icons/#{n}")
       return f if f
@@ -963,12 +964,51 @@ module PokeRPGLink
         break if path
       end
     end
-    out = path ? image_file(path, "icon_#{sym}_#{form}#{shiny ? 's' : ''}", true) : nil
+    key = "icon_#{sym}_#{form}#{shiny ? 's' : ''}"
+    out = path ? image_file(path, key, true) : nil
+    # Some games (Rejuvenation 14…) only build icons through their own drawing
+    # function. Ask it for the bitmap and save the first frame ourselves.
+    out ||= drawn_icon(key, sym, form, shiny, pkmn)
     unless @icon_logged
       @icon_logged = true
-      log("icon lookup #{sym}: game path=#{path.inspect} loose=#{(path && resolve_file(path)).inspect} result=#{out.inspect} cwd=#{Dir.pwd}") rescue nil
+      sample = (Dir.glob("Graphics/Icons/*").first(12) rescue [])
+      log("icon lookup #{sym}: game path=#{path.inspect} loose=#{(path && resolve_file(path)).inspect} result=#{out.inspect} cwd=#{Dir.pwd} icons=#{sample.inspect} #{@icon_err}") rescue nil
     end
     out
+  end
+
+  def self.drawn_icon(key, sym, form, shiny, pkmn)
+    out = "PokeRPGLink/cache/#{key.to_s.gsub(/[^A-Za-z0-9_.-]/, '_')}.png"
+    return out if File.file?(out)
+    bmp = nil
+    tries = []
+    tries << lambda { pbPokemonIconBitmap(pkmn, (pkmn.isEgg? rescue false)) } if pkmn
+    tries << lambda { pbLoadPokemonIcon(pkmn) } if pkmn
+    tries << lambda { pbIconBitmap(sym, form.to_i, shiny) }
+    tries << lambda { pbIconBitmap(sym) }
+    tries.each do |t|
+      begin
+        bmp = t.call
+        bmp = bmp.bitmap if bmp && !bmp.respond_to?(:get_pixel) && bmp.respond_to?(:bitmap)
+        bmp = nil unless bmp && bmp.respond_to?(:get_pixel) && bmp.width > 0
+      rescue Exception => e
+        @icon_err ||= "draw error: #{e.class}: #{e.message.to_s[0, 120]}"
+        bmp = nil
+      end
+      break if bmp
+    end
+    return nil unless bmp
+    begin
+      h = [bmp.height, 64].min
+      w = [bmp.width, h].min
+      Dir.mkdir("PokeRPGLink") unless File.directory?("PokeRPGLink")
+      Dir.mkdir("PokeRPGLink/cache") unless File.directory?("PokeRPGLink/cache")
+      write_png(out, bmp, w, h)
+      out
+    rescue Exception => e
+      @icon_err ||= "save error: #{e.class}: #{e.message.to_s[0, 120]}"
+      nil
+    end
   end
 
   # A picture as a loose file the panel can show. Games that keep their graphics
@@ -1648,6 +1688,7 @@ module PokeRPGLink
     begin
       party = bt.pbParty(0)
       order = (bt.partyorder rescue nil) || (0...party.length).to_a
+      order = order[0] if order[0].is_a?(Array)        # Rejuvenation 14: one order per side
       order.each do |pi|
         p = party[pi]
         next unless p
