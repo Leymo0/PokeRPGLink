@@ -22,7 +22,7 @@
 
 module PokeRPGLink
   unless const_defined?(:VERSION)
-    VERSION      = "1.0.0"
+    VERSION      = "1.0.1"
     STATE_EVERY  = 8     # frames between state refreshes (~7.5x per second)
     CMD_EVERY    = 3     # frames between command-folder checks
   end
@@ -2488,11 +2488,34 @@ module PokeRPGLink
   end
 end
 
-# Every hook is a module *prepended* in front of the game's class. Its methods call
-# plain `super`, which hands the game exactly the arguments it was given and reaches
-# whatever the game's current method is — even if the game or another mod redefines
-# it later. This is what keeps PokeRPGLink from ever changing how the game calls itself.
+# Every hook is a module *prepended* in front of the game's class. Its methods take
+# whatever they're given and pass it on with an explicit super(*args) — trimmed to what
+# the game's method accepts — so the game's own method is always called the way the
+# game called it, even if the game or another mod redefines it later.
 module PokeRPGLink
+  # Hand the game exactly what it can take. Some Ruby builds (and some games' own
+  # wrappers) disagree on how many arguments reach a method; a wrapper that passes
+  # too many is what crashed level-ups, so trim to what the next method accepts.
+  @fit_cache = {}
+  def self.fit(obj, name, args)
+    key = [obj.class, name, args.length]
+    n = @fit_cache.fetch(key) do
+      max = nil
+      begin
+        mod = obj.singleton_class.ancestors.find { |m| m.name.to_s.start_with?("PokeRPGLink::Patch_") && m.instance_methods(false).include?(name) }
+        sm = mod && mod.instance_method(name).bind(obj).super_method
+        if sm
+          ps = sm.parameters
+          max = ps.any? { |t, _| t == :rest } ? nil : ps.count { |t, _| t == :req || t == :opt }
+        end
+      rescue
+        max = nil
+      end
+      @fit_cache[key] = max
+    end
+    n && args.length > n ? args.first(n) : args
+  end
+
   def self.patch(klass, name, &body)
     mname = "Patch_" + name.gsub(/[^A-Za-z0-9]/, "_")
     mod = const_defined?(mname, false) ? const_get(mname, false) : const_set(mname, Module.new(&body))
@@ -2503,8 +2526,8 @@ end
 
 PokeRPGLink.hook("input") do
   PokeRPGLink.patch(Input.singleton_class, "input") do
-    def update(*)
-      r = super
+    def update(*__a, &__b)
+      r = super(*PokeRPGLink.fit(self, :update, __a), &__b)
       begin
         PokeRPGLink.tick
         PokeRPGInput.on_update
@@ -2513,14 +2536,17 @@ PokeRPGLink.hook("input") do
       end
       r
     end
-    def trigger?(b, *)
-      PokeRPGInput.active?(b) ? true : super
+    def trigger?(*__a, &__b)
+      b = __a[0]
+      PokeRPGInput.active?(b) ? true : super(*PokeRPGLink.fit(self, :trigger?, __a), &__b)
     end
-    def press?(b, *)
-      PokeRPGInput.active?(b) ? true : super
+    def press?(*__a, &__b)
+      b = __a[0]
+      PokeRPGInput.active?(b) ? true : super(*PokeRPGLink.fit(self, :press?, __a), &__b)
     end
-    def repeat?(b, *)
-      PokeRPGInput.active?(b) ? true : super
+    def repeat?(*__a, &__b)
+      b = __a[0]
+      PokeRPGInput.active?(b) ? true : super(*PokeRPGLink.fit(self, :repeat?, __a), &__b)
     end
   end
 end
@@ -2536,14 +2562,15 @@ end
 
 PokeRPGLink.hook("battle-start-end") do
   PokeRPGLink.patch(PokeRPGLink::SCENE_CLASS, "battle_start_end") do
-    def pbStartBattle(battle, *)
+    def pbStartBattle(*__a, &__b)
+      battle = __a[0]
       PokeRPGLink.battle = battle
       PokeRPGLink.battle_queue.clear
       PokeRPGLink.clear_battle_log
-      super
+      super(*PokeRPGLink.fit(self, :pbStartBattle, __a), &__b)
     end
-    def pbEndBattle(*)
-      super
+    def pbEndBattle(*__a, &__b)
+      super(*PokeRPGLink.fit(self, :pbEndBattle, __a), &__b)
     ensure
       PokeRPGLink.battle = nil
       PokeRPGLink.menu = :none
@@ -2554,12 +2581,14 @@ end
 
 PokeRPGLink.hook("battle-command-menu") do
   PokeRPGLink.patch(PokeRPGLink::SCENE_CLASS, "command_menu") do
-    def pbCommandMenuEx(index, *rest)
+    def pbCommandMenuEx(*__a, &__b)
+      index = __a[0]
+      rest = (__a[1..-1] || [])
       PokeRPGLink.battle ||= @battle
       PokeRPGLink.menu = :command
       PokeRPGLink.menu_index = index
       PokeRPGLink.command_labels = (PokeRPGLink.command_texts(rest[0]) rescue nil)
-      super
+      super(*PokeRPGLink.fit(self, :pbCommandMenuEx, __a), &__b)
     ensure
       PokeRPGLink.menu = :none
     end
@@ -2568,11 +2597,12 @@ end
 
 PokeRPGLink.hook("battle-fight-menu") do
   PokeRPGLink.patch(PokeRPGLink::SCENE_CLASS, "fight_menu") do
-    def pbFightMenu(index, *)
+    def pbFightMenu(*__a, &__b)
+      index = __a[0]
       PokeRPGLink.battle ||= @battle
       PokeRPGLink.menu = :fight
       PokeRPGLink.menu_index = index
-      super
+      super(*PokeRPGLink.fit(self, :pbFightMenu, __a), &__b)
     ensure
       PokeRPGLink.menu = :none
     end
@@ -2581,13 +2611,14 @@ end
 
 PokeRPGLink.hook("battle-frame") do
   PokeRPGLink.patch(PokeRPGLink::SCENE_CLASS, "frame") do
-    def pbFrameUpdate(*a)
+    def pbFrameUpdate(*__a, &__b)
+      a = (__a[0..-1] || [])
       begin
         PokeRPGLink.battle_frame(self, a[0]) if PokeRPGLink.menu != :none
       rescue => e
         PokeRPGLink.err("battle_frame", e)
       end
-      super
+      super(*PokeRPGLink.fit(self, :pbFrameUpdate, __a), &__b)
     end
   end
 end
@@ -2595,7 +2626,9 @@ end
 PokeRPGLink.hook("battle-target") do
   if PokeRPGLink.essentials?
     PokeRPGLink.patch(PokeRPGLink::SCENE_CLASS, "target") do
-      def pbChooseTarget(index, target_data, *)
+      def pbChooseTarget(*__a, &__b)
+        index = __a[0]
+        target_data = __a[1]
         PokeRPGLink.target_data = target_data
         pt = PokeRPGLink.peek_pending_target
         if pt
@@ -2606,7 +2639,7 @@ PokeRPGLink.hook("battle-target") do
           end
         end
         PokeRPGLink.begin_target(index, :any)
-        super
+        super(*PokeRPGLink.fit(self, :pbChooseTarget, __a), &__b)
       ensure
         PokeRPGLink.menu = :none
         PokeRPGLink.target_data = nil
@@ -2614,30 +2647,32 @@ PokeRPGLink.hook("battle-target") do
     end
   else
     PokeRPGLink.patch(PokeRPGLink::SCENE_CLASS, "target") do
-      def pbChooseTarget(index, *)
+      def pbChooseTarget(*__a, &__b)
+        index = __a[0]
         t = PokeRPGLink.take_pending_target(@battle, index, :any)
         return t if t
         PokeRPGLink.begin_target(index, :any)
-        r = catch(:pokerpglink_target) { super }
+        r = catch(:pokerpglink_target) { super(*PokeRPGLink.fit(self, :pbChooseTarget, __a), &__b) }
         (pbUpdateSelected(-1) rescue nil)
         r
       ensure
         PokeRPGLink.menu = :none
       end
 
-      def pbChooseTargetAcupressure(index, *)
+      def pbChooseTargetAcupressure(*__a, &__b)
+        index = __a[0]
         t = PokeRPGLink.take_pending_target(@battle, index, :ally)
         return t if t
         PokeRPGLink.begin_target(index, :ally)
-        r = catch(:pokerpglink_target) { super }
+        r = catch(:pokerpglink_target) { super(*PokeRPGLink.fit(self, :pbChooseTargetAcupressure, __a), &__b) }
         (pbUpdateSelected(-1) rescue nil)
         r
       ensure
         PokeRPGLink.menu = :none
       end
 
-      def pbUpdateSelected(*)
-        r = super
+      def pbUpdateSelected(*__a, &__b)
+        r = super(*PokeRPGLink.fit(self, :pbUpdateSelected, __a), &__b)
         PokeRPGLink.target_frame(self) if PokeRPGLink.menu == :target   # may throw :pokerpglink_target
         r
       end
@@ -2648,10 +2683,10 @@ end
 PokeRPGLink.hook("battle-switch") do
   if PokeRPGLink.essentials?
     PokeRPGLink.patch(PokeRPGLink::SCENE_CLASS, "switch") do
-      def pbPartyScreen(*)
+      def pbPartyScreen(*__a, &__b)
         PokeRPGLink.in_switch = true
         PokeRPGLink.menu = :switch
-        super
+        super(*PokeRPGLink.fit(self, :pbPartyScreen, __a), &__b)
       ensure
         PokeRPGLink.in_switch = false
         PokeRPGLink.auto_switchin = false
@@ -2660,7 +2695,10 @@ PokeRPGLink.hook("battle-switch") do
     end
   else
     PokeRPGLink.patch(PokeRPGLink::SCENE_CLASS, "switch") do
-      def pbSwitch(index, lax, cancancel, *)
+      def pbSwitch(*__a, &__b)
+        index = __a[0]
+        lax = __a[1]
+        cancancel = __a[2]
         pi = PokeRPGLink.take_switch
         if pi
           party = @battle.pbParty(index)
@@ -2670,7 +2708,7 @@ PokeRPGLink.hook("battle-switch") do
         end
         PokeRPGLink.in_switch = true
         PokeRPGLink.menu = :switch
-        super
+        super(*PokeRPGLink.fit(self, :pbSwitch, __a), &__b)
       ensure
         PokeRPGLink.in_switch = false
         PokeRPGLink.auto_switchin = false
@@ -2683,9 +2721,12 @@ end
 # Items chosen on the panel's bag skip the game's bag screen entirely.
 PokeRPGLink.hook("battle-item-menu") do
   PokeRPGLink.patch(PokeRPGLink::SCENE_CLASS, "item_menu") do
-    def pbItemMenu(index, *rest, &blk)
+    def pbItemMenu(*__a, &__b)
+      index = __a[0]
+      rest = (__a[1..-1] || [])
+      blk = __b
       q = PokeRPGLink.take_item_choice
-      return super unless q
+      return super(*PokeRPGLink.fit(self, :pbItemMenu, __a), &__b) unless q
       PokeRPGLink.panel_item_menu(self, @battle, index, q, rest, blk)
     end
   end
@@ -2693,17 +2734,20 @@ end
 
 PokeRPGLink.hook("battle-messages") do
   PokeRPGLink.patch(PokeRPGLink::SCENE_CLASS, "messages") do
-    def pbDisplayMessage(msg, *)
+    def pbDisplayMessage(*__a, &__b)
+      msg = __a[0]
       (PokeRPGLink.log_message(msg) rescue nil)
-      super
+      super(*PokeRPGLink.fit(self, :pbDisplayMessage, __a), &__b)
     end
-    def pbDisplayPausedMessage(msg, *)
+    def pbDisplayPausedMessage(*__a, &__b)
+      msg = __a[0]
       (PokeRPGLink.log_message(msg) rescue nil)
-      super
+      super(*PokeRPGLink.fit(self, :pbDisplayPausedMessage, __a), &__b)
     end
-    def pbDisplayConfirmMessage(msg, *)
+    def pbDisplayConfirmMessage(*__a, &__b)
+      msg = __a[0]
       (PokeRPGLink.log_message(msg) rescue nil)
-      super
+      super(*PokeRPGLink.fit(self, :pbDisplayConfirmMessage, __a), &__b)
     end
   end
 end
@@ -2711,9 +2755,11 @@ end
 PokeRPGLink.hook("ball-tracking") do
   raise "no battle class" unless PokeRPGLink::BATTLE_CLASS
   PokeRPGLink.patch(PokeRPGLink::BATTLE_CLASS, "ball") do
-    def pbThrowPokeBall(idx, ball, *)
+    def pbThrowPokeBall(*__a, &__b)
+      idx = __a[0]
+      ball = __a[1]
       (PokeRPGLink.remember_ball(ball) rescue nil)
-      super
+      super(*PokeRPGLink.fit(self, :pbThrowPokeBall, __a), &__b)
     end
   end
 end
@@ -2721,28 +2767,28 @@ end
 PokeRPGLink.hook("party-screen") do
   klass = PokeRPGLink.essentials? ? PokemonParty_Scene : PokemonScreen_Scene
   PokeRPGLink.patch(klass, "party_scene") do
-    def update(*)
+    def update(*__a, &__b)
       begin
         PokeRPGLink.party_screen_frame(self)
       rescue => e
         PokeRPGLink.err("party_frame", e)
       end
-      super
+      super(*PokeRPGLink.fit(self, :update, __a), &__b)
     end
-    def pbShowCommands(*)
+    def pbShowCommands(*__a, &__b)
       if PokeRPGLink.auto_switchin
         PokeRPGLink.auto_switchin = false
         return 0   # "Switch In"
       end
-      super
+      super(*PokeRPGLink.fit(self, :pbShowCommands, __a), &__b)
     end
   end
 end
 
 PokeRPGLink.hook("map") do
   PokeRPGLink.patch(Scene_Map, "map") do
-    def update(*)
-      r = super
+    def update(*__a, &__b)
+      r = super(*PokeRPGLink.fit(self, :update, __a), &__b)
       begin
         PokeRPGLink.map_frame
       rescue => e
