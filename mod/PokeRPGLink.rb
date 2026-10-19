@@ -22,7 +22,7 @@
 
 module PokeRPGLink
   unless const_defined?(:VERSION)
-    VERSION      = "1.0.7"
+    VERSION      = "1.0.8"
     STATE_EVERY  = 8     # frames between state refreshes (~7.5x per second)
     CMD_EVERY    = 3     # frames between command-folder checks
   end
@@ -1100,10 +1100,45 @@ module PokeRPGLink
     @icon_cache[key] = (image_file(pbItemIconFile(i), "item_#{i}") rescue nil)
   end
 
+  # A dex flag can be a plain true/false, or (newer builds) a per-form hash /
+  # array / count. Only a real "yes" somewhere inside counts.
+  def self.dex_truth(v, depth = 0)
+    return false if v.nil? || v == false || depth > 3
+    return true if v == true
+    return v > 0 if v.is_a?(Numeric)
+    return v.values.any? { |x| dex_truth(x, depth + 1) } if v.is_a?(Hash)
+    return v.any? { |x| dex_truth(x, depth + 1) } if v.is_a?(Array)
+    return false if v.is_a?(String) || v.is_a?(Symbol)
+    false
+  end
+
+  def self.dex_entry_flag(e, keys)
+    keys.each do |k|
+      v = (e[k] rescue nil)
+      v = (e.send(k) rescue nil) if v.nil? && e.respond_to?(k)
+      return dex_truth(v) unless v.nil?
+    end
+    false
+  end
+
   def self.dex_flags(sym)
-    e = ($Trainer.pokedex.dexList[sym] rescue nil)
-    return [false, false] unless e
-    [e[:seen?] ? true : false, e[:owned?] ? true : false]
+    pd = ($Trainer.pokedex rescue nil)
+    # The game's own question, when it has one
+    s = (pd.seen?(sym) rescue nil) if pd.respond_to?(:seen?)
+    o = (pd.owned?(sym) rescue nil) if pd.respond_to?(:owned?)
+    if s.nil? || o.nil?
+      e = (pd.dexList[sym] rescue nil)
+      return [false, false] unless e
+      unless @dex_logged
+        @dex_logged = true
+        log("dex entry #{sym}: #{e.class} #{(e.inspect rescue '?')[0, 400]}") rescue nil
+      end
+      s = dex_entry_flag(e, [:seen?, :seen]) if s.nil?
+      o = dex_entry_flag(e, [:owned?, :owned, :caught?, :caught]) if o.nil?
+    end
+    s = dex_truth(s)
+    o = dex_truth(o)
+    [s || o, o]
   end
 
   STAT_KEYS = %w[hp atk def spa spd spe]
@@ -2025,7 +2060,12 @@ module PokeRPGLink
       end
     end
     list.sort_by! { |e| e["dex"] }
-    { "species" => list, "types" => ($cache.types.keys.map { |t| { "id" => t.to_s, "name" => type_name(t) } } rescue []) }
+    # Like the game's own Pokédex: the list stops at the last species you've seen
+    last = list.select { |e| e["seen"] }.map { |e| e["dex"] }.max || 0
+    { "species" => list, "lastSeen" => last,
+      "gameSeen" => (($Trainer.pokedex.getSeenCount rescue nil) || ($Trainer.pokedex.seenCount rescue nil)),
+      "gameOwned" => (($Trainer.pokedex.getOwnedCount rescue nil) || ($Trainer.pokedex.ownedCount rescue nil)),
+      "types" => ($cache.types.keys.map { |t| { "id" => t.to_s, "name" => type_name(t) } } rescue []) }
   end
 
   def self.build_townmap
