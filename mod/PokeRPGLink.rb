@@ -22,7 +22,7 @@
 
 module PokeRPGLink
   unless const_defined?(:VERSION)
-    VERSION      = "1.0.3"
+    VERSION      = "1.0.4"
     STATE_EVERY  = 8     # frames between state refreshes (~7.5x per second)
     CMD_EVERY    = 3     # frames between command-folder checks
   end
@@ -153,6 +153,10 @@ module PokeRPGLink
         err("poll", e)
       end
     end
+    (icon_jobs_tick rescue nil) if @frame % 2 == 0
+    if @frame % 90 == 0   # heartbeat: the panel knows the game is running even when nothing changes
+      (write_file("alive.txt", @frame.to_s) rescue nil)
+    end
     if @frame % STATE_EVERY == 0
       begin
         s = json(build_state)
@@ -178,6 +182,9 @@ module PokeRPGLink
       line = (File.open(p, "rb") { |f| f.read } rescue "").to_s.strip
       File.delete(p) rescue nil
       next if line.empty?
+      # taps older than a few seconds (the game was busy or paused) are dropped, not replayed
+      sent = n[/\A(\d{13,15})/, 1].to_i
+      next if sent > 1_000_000_000_000 && (Time.now.to_f * 1000).to_i - sent > 4000
       begin
         handle(line.split(/\s+/))
       rescue => e
@@ -191,8 +198,26 @@ module PokeRPGLink
     s.to_s.upcase.to_sym
   end
 
+  # One battle action at a time: after a move / switch / item / run is chosen, further
+  # battle taps are ignored until the game asks for the next choice (new command menu).
+  def self.mark_busy; @battle_busy = @frame; end
+  def self.turn_ready; @battle_busy = nil; end
+
+  def self.battle_busy?
+    return false unless @battle_busy
+    return false if @in_switch      # the game itself is asking for a Pokémon (e.g. after a faint)
+    if @frame - @battle_busy > 360 && @menu != :none   # the game is asking again (e.g. the choice failed)
+      @battle_busy = nil
+      return false
+    end
+    true
+  end
+
+  BATTLE_VERBS = %w[bcmd bmove bitem bball bswitch]
+
   def self.handle(a)
     verb = a[0].to_s.downcase
+    return if BATTLE_VERBS.include?(verb) && @battle && battle_busy?
     case verb
     when "btn"
       PokeRPGInput.press(a[1])
@@ -279,6 +304,7 @@ module PokeRPGLink
         set_index(cw, cmd_slot(q[:idx]))
         PokeRPGInput.press("C")
         @battle_queue.shift
+        mark_busy if q[:idx] == 3
       when :move
         set_index(cw, cmd_slot(0))    # open Fight, keep the move queued
         PokeRPGInput.press("C")
@@ -307,6 +333,7 @@ module PokeRPGLink
         end
         PokeRPGInput.press("C")
         @battle_queue.shift
+        mark_busy
         @pending_target = [q[:target], @frame + 240]   # target may be nil: still marks "chosen on the panel"
         @cooldown = 6
       else
@@ -381,6 +408,7 @@ module PokeRPGLink
     return nil unless q && q[:t] == :item
     @battle_queue.shift
     return nil if q[:at] && @frame - q[:at] > 900   # stale (the bag never opened)
+    mark_busy
     q
   end
 
@@ -502,6 +530,7 @@ module PokeRPGLink
     q = @battle_queue.first
     return nil unless q && q[:t] == :switch
     @battle_queue.shift
+    mark_busy
     q[:pi]
   end
 
@@ -526,6 +555,7 @@ module PokeRPGLink
     return unless q && q[:t] == :switch
     disp = display_index(q[:pi])
     @battle_queue.shift
+    mark_busy
     scene.pbSelect(disp) if scene.respond_to?(:pbSelect)
     @auto_switchin = true
     PokeRPGInput.press("C")
@@ -877,6 +907,36 @@ module PokeRPGLink
     @icon_cache[key] = custom_icon(sym, form, shiny) || game_icon(sym, form, shiny, female, pkmn)
   end
 
+  # For the Pokédex: only what's instant (custom pack, loose files, icons already in the
+  # cache). Everything else is drawn into the cache a few per frame in the background,
+  # so opening the Pokédex never freezes the game; the panel picks them up as they appear.
+  def self.quick_icon(sym)
+    key = "si:#{sym}:0:false:false"
+    return @icon_cache[key] if @icon_cache.key?(key)
+    c = custom_icon(sym, 0, false)
+    return c if c
+    cached = "PokeRPGLink/cache/icon_#{sym}_0.png"
+    return cached if File.file?(cached)
+    dex = (mondata(sym).dexnum rescue nil)
+    names = ["icon#{sym}", "icon#{sym.to_s.downcase}"]
+    names += [format("icon%03d", dex.to_i), "icon#{dex}"] if dex
+    names.each do |n|
+      f = resolve_file("Graphics/Icons/#{n}")
+      return f if f
+    end
+    (@icon_jobs ||= []) << sym
+    nil
+  end
+
+  def self.icon_jobs_tick
+    return if @icon_jobs.nil? || @icon_jobs.empty? || @battle
+    2.times do
+      sym = @icon_jobs.shift
+      break unless sym
+      (species_icon(sym) rescue nil)
+    end
+  end
+
   # The icon the game itself draws (its party screen icon). Tries the game's own
   # lookup first, then the usual file names by species and dex number.
   def self.game_icon(sym, form, shiny, female, pkmn)
@@ -903,8 +963,12 @@ module PokeRPGLink
         break if path
       end
     end
-    return nil unless path
-    image_file(path, "icon_#{sym}_#{form}#{shiny ? 's' : ''}", true)
+    out = path ? image_file(path, "icon_#{sym}_#{form}#{shiny ? 's' : ''}", true) : nil
+    unless @icon_logged
+      @icon_logged = true
+      log("icon lookup #{sym}: game path=#{path.inspect} loose=#{(path && resolve_file(path)).inspect} result=#{out.inspect} cwd=#{Dir.pwd}") rescue nil
+    end
+    out
   end
 
   # A picture as a loose file the panel can show. Games that keep their graphics
@@ -1207,6 +1271,8 @@ module PokeRPGLink
     st["party"] = trainer.party.each_with_index.map { |p, i| pokemon_info(p, i) } rescue (err("party", $!); [])
     st["bag"] = build_bag rescue (err("bag", $!); [])
     st["battle"] = (@battle ? (build_battle rescue (err("battle", $!); nil)) : nil)
+    st["busy"] = true if @battle && battle_busy?
+    st["diag"] = { "icon" => ((st["party"] || [])[0] || {})["icon"], "jobs" => (@icon_jobs || []).length }
     decorate(st) rescue err("decorate", $!)
     st
   end
@@ -1633,7 +1699,7 @@ module PokeRPGLink
         "evos" => ((d.evolutions || []).map { |e| e.is_a?(Array) ? mon_name(e[0]) : nil }.compact rescue []),
         "seen" => seen, "owned" => owned,
         "where" => (found[sp] || []).uniq.first(12),
-        "icon" => species_icon(sp), "sprite" => species_sprite(sp)
+        "icon" => quick_icon(sp), "sprite" => species_sprite(sp)
       }
       rescue => e
         err("dex #{sp}", e)
@@ -2670,6 +2736,7 @@ PokeRPGLink.hook("battle-start-end") do
     def pbStartBattle(*__a, &__b)
       battle = __a[0]
       PokeRPGLink.battle = battle
+      PokeRPGLink.turn_ready
       PokeRPGLink.battle_queue.clear
       PokeRPGLink.clear_battle_log
       super(*PokeRPGLink.fit(self, :pbStartBattle, __a), &__b)
@@ -2690,6 +2757,7 @@ PokeRPGLink.hook("battle-command-menu") do
       index = __a[0]
       rest = (__a[1..-1] || [])
       PokeRPGLink.battle ||= @battle
+      PokeRPGLink.turn_ready
       PokeRPGLink.menu = :command
       PokeRPGLink.menu_index = index
       PokeRPGLink.command_labels = (PokeRPGLink.command_texts(rest[0]) rescue nil)
