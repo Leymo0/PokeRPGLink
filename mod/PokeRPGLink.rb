@@ -22,7 +22,7 @@
 
 module PokeRPGLink
   unless const_defined?(:VERSION)
-    VERSION      = "1.0.5"
+    VERSION      = "1.0.6"
     STATE_EVERY  = 8     # frames between state refreshes (~7.5x per second)
     CMD_EVERY    = 3     # frames between command-folder checks
   end
@@ -1240,6 +1240,199 @@ module PokeRPGLink
     m
   end
 
+  # ---- What changes a move's power right now (field, ability, item, weather,
+  # stat stages…). Returns [{"label", "mult"}]; the panel shows the product and
+  # the list. Engine-neutral: every check is optional and rescued on its own.
+  TYPE_ITEMS = {
+    CHARCOAL: :FIRE, MYSTICWATER: :WATER, MAGNET: :ELECTRIC, MIRACLESEED: :GRASS, NEVERMELTICE: :ICE,
+    BLACKBELT: :FIGHTING, POISONBARB: :POISON, SOFTSAND: :GROUND, SHARPBEAK: :FLYING, TWISTEDSPOON: :PSYCHIC,
+    SILVERPOWDER: :BUG, HARDSTONE: :ROCK, SPELLTAG: :GHOST, DRAGONFANG: :DRAGON, BLACKGLASSES: :DARK,
+    METALCOAT: :STEEL, SILKSCARF: :NORMAL, FAIRYFEATHER: :FAIRY, FLAMEPLATE: :FIRE, SPLASHPLATE: :WATER,
+    ZAPPLATE: :ELECTRIC, MEADOWPLATE: :GRASS, ICICLEPLATE: :ICE, FISTPLATE: :FIGHTING, TOXICPLATE: :POISON,
+    EARTHPLATE: :GROUND, SKYPLATE: :FLYING, MINDPLATE: :PSYCHIC, INSECTPLATE: :BUG, STONEPLATE: :ROCK,
+    SPOOKYPLATE: :GHOST, DRACOPLATE: :DRAGON, DREADPLATE: :DARK, IRONPLATE: :STEEL, PIXIEPLATE: :FAIRY,
+    SEAINCENSE: :WATER, WAVEINCENSE: :WATER, ROSEINCENSE: :GRASS, ODDINCENSE: :PSYCHIC, ROCKINCENSE: :ROCK
+  }
+  ATE_ABILITIES = %i[PIXILATE AERILATE REFRIGERATE GALVANIZE DUSKILATE]
+  PINCH_ABILITIES = { BLAZE: :FIRE, TORRENT: :WATER, OVERGROW: :GRASS, SWARM: :BUG }
+  TYPE_ABILITIES = { TRANSISTOR: [:ELECTRIC, 1.5], DRAGONSMAW: [:DRAGON, 1.5], STEELWORKER: [:STEEL, 1.5],
+                     ROCKYPAYLOAD: [:ROCK, 1.5], WATERBUBBLE: [:WATER, 2.0] }
+
+  def self.sym_id(x)
+    return nil if x.nil?
+    return x if x.is_a?(Symbol)
+    (x.id rescue nil) || x.to_s.upcase.to_sym
+  end
+
+  def self.rejuv_family?
+    (defined?(Rejuv) && Rejuv) || (defined?(Reborn) && Reborn) || (defined?(Desolation) && Desolation) ? true : false
+  end
+
+  def self.stage_of(b, stat)
+    v = nil
+    v = (b.stages[PBStats.const_get(stat)] rescue nil) if defined?(PBStats) && (PBStats.const_defined?(stat) rescue false)
+    v = (b.stages[stat] rescue nil) if v.nil?
+    v.to_i
+  end
+
+  def self.effect_on(b, key)
+    v = (b.effects[key] rescue nil)
+    if v.nil? && defined?(PBEffects) && (PBEffects.const_defined?(key) rescue false)
+      v = (b.effects[PBEffects.const_get(key)] rescue nil)
+    end
+    v && v != false && v != 0 && v != -1 ? v : nil
+  end
+
+  def self.move_flag?(m, names)
+    names.any? { |n| (m.respond_to?(n) && m.send(n)) rescue false }
+  end
+
+  def self.power_boosts(bt, me, m, move_id, base_type, type, cat, basepow, foe = nil, field_boost = nil)
+    out = []
+    add = lambda { |label, mult| out << { "label" => label.to_s, "mult" => mult.to_f.round(2) } if mult && (mult.to_f - 1).abs > 0.001 }
+    return out if cat == "status"
+    phys = cat == "physical"
+    rj = rejuv_family?
+    t = sym_id(type)
+    bt0 = sym_id(base_type)
+    begin
+      field_boost.each { |lab, mult| add.call(lab, mult) } if field_boost
+    rescue
+    end
+    ab = sym_id((me.ability_id rescue nil) || (me.ability rescue nil))
+    abname = ((abil(ab) || {})["name"] rescue nil) || ab.to_s
+    begin
+      case ab
+      when :TECHNICIAN then add.call(abname, 1.5) if basepow.to_i > 0 && basepow.to_i <= 60
+      when :STRONGJAW then add.call(abname, 1.5) if move_flag?(m, %i[bitingMove? isBitingMove?]) || ((PBStuff::BITEMOVE.include?(move_id)) rescue false)
+      when :TOUGHCLAWS then add.call(abname, 1.3) if move_flag?(m, %i[contactMove? isContactMove? pbContactMove?])
+      when :IRONFIST then add.call(abname, rj ? 1.3 : 1.2) if move_flag?(m, %i[punchingMove? punchMove? isPunchingMove?])
+      when :SHARPNESS then add.call(abname, 1.5) if move_flag?(m, %i[slicingMove? sharpMove?])
+      when :MEGALAUNCHER then add.call(abname, 1.5) if move_flag?(m, %i[pulseMove? isPulseMove?]) || ((rj && PBStuff::BULLETMOVE.include?(move_id)) rescue false)
+      when :PUNKROCK then add.call(abname, 1.3) if move_flag?(m, %i[soundMove? isSoundBased?])
+      when :LIQUIDVOICE then add.call(abname, 1.3) if rj && move_flag?(m, %i[soundMove? isSoundBased?])
+      when :NORMALIZE then add.call(abname, rj ? 1.5 : 1.2)
+      when :SHEERFORCE
+        eff = ((m.addlEffect rescue nil) || (m.effect rescue nil)).to_i
+        add.call(abname, 1.3) if eff > 0
+      when :GUTS then add.call(abname, 1.5) if phys && status_s((me.status rescue nil))
+      when :HUGEPOWER, :PUREPOWER then add.call(abname, 2.0) if phys
+      when :HUSTLE then add.call(abname, 1.5) if phys
+      when :SOLARPOWER then add.call(abname, 1.5) if !phys && (bt.pbWeather rescue bt.weather).to_s =~ /SUN/i
+      when :ADAPTABILITY then add.call("#{abname} (STAB ×2)", 2.0 / 1.5) if (me.pbHasType?(type) rescue false)
+      when *ATE_ABILITIES then add.call(abname, rj ? 1.3 : 1.2) if bt0 == :NORMAL && t != :NORMAL
+      when *PINCH_ABILITIES.keys
+        add.call(abname, 1.5) if PINCH_ABILITIES[ab] == t && me.hp.to_i * 3 <= me.totalhp.to_i
+      when *TYPE_ABILITIES.keys
+        tt, mul = TYPE_ABILITIES[ab]
+        add.call(abname, mul) if tt == t
+      end
+    rescue
+    end
+    # Held item
+    begin
+      it = sym_id((me.item_id rescue nil) || (me.item rescue nil))
+      works = (me.itemWorks?(true) rescue true)
+      if it && works
+        iname = item_name(it)
+        flag = ($cache.items[it].checkFlag?(:typeboost) rescue nil)
+        gem = ($cache.items[it].checkFlag?(:gem) rescue false)
+        if flag && sym_id(flag) == t
+          add.call(iname, gem ? 1.5 : 1.2)
+        elsif it.to_s.end_with?("GEM") && it.to_s.sub(/GEM\z/, "").to_sym == t
+          add.call(iname, rj ? 1.5 : 1.3)
+        elsif TYPE_ITEMS[it] == t
+          add.call(iname, 1.2)
+        else
+          case it
+          when :CHOICEBAND then add.call(iname, 1.5) if phys
+          when :CHOICESPECS then add.call(iname, 1.5) unless phys
+          when :LIFEORB then add.call(iname, 1.3)
+          when :MUSCLEBAND then add.call(iname, 1.1) if phys
+          when :WISEGLASSES then add.call(iname, 1.1) unless phys
+          end
+        end
+      end
+    rescue
+    end
+    # Weather
+    begin
+      w = ((bt.pbWeather rescue nil) || (bt.weather rescue nil)).to_s
+      if w =~ /RAIN/i
+        add.call("Rain", 1.5) if t == :WATER
+        add.call("Rain", 0.5) if t == :FIRE
+      elsif w =~ /SUN/i
+        add.call("Sun", 1.5) if t == :FIRE
+        add.call("Sun", 0.5) if t == :WATER
+      end
+    rescue
+    end
+    # Moves and states that power up the next attack
+    begin
+      add.call("Charge", 2.0) if t == :ELECTRIC && effect_on(me, :Charge)
+      add.call("Helping Hand", 1.5) if effect_on(me, :HelpingHand)
+    rescue
+    end
+    # Attack / Sp. Atk stages and burn
+    begin
+      st = stage_of(me, phys ? :ATTACK : :SPATK)
+      st = stage_of(me, :SPECIAL_ATTACK) if !phys && st == 0
+      if st != 0
+        mul = st > 0 ? (2.0 + st) / 2.0 : 2.0 / (2.0 - st)
+        add.call("#{phys ? 'Attack' : 'Sp. Atk'} #{st > 0 ? '+' : ''}#{st}", mul)
+      end
+      add.call("Burned", 0.5) if phys && ab != :GUTS && status_s((me.status rescue nil)) =~ /BURN/
+    rescue
+    end
+    out
+  end
+
+  # Essentials / Tectonic: base type vs. the type after abilities, terrain boosts
+  TERRAIN_TYPES = { Electric: :ELECTRIC, Grassy: :GRASS, Psychic: :PSYCHIC }
+  def self.ess_move_extras(bt, me, m, mv, mtype)
+    btype = (m.type rescue nil)
+    if btype && mtype && btype.to_s != mtype.to_s
+      mv["baseType"] = btype.to_s
+      mv["baseTypeName"] = type_name(btype)
+      ab = (me.ability_id rescue nil)
+      mv["typeWhy"] = ab ? ((abil(ab)["name"] rescue nil) || ab.to_s) : nil
+    end
+    fb = []
+    terr = (bt.field.terrain rescue nil)
+    if terr && TERRAIN_TYPES[terr] == sym_id(mtype) && (me.affectedByTerrain? rescue true)
+      tn = "#{(gd(:BattleTerrain, terr).name rescue terr.to_s)} Terrain".sub("Terrain Terrain", "Terrain")
+      fb << [tn, 1.3]
+    end
+    mv["boosts"] = power_boosts(bt, me, m, (m.id rescue nil), btype, mtype, mv["cat"], mv["pow"], nil, fb)
+    mv["power"] = boost_total(mv["boosts"])
+  rescue => e
+    err("move boosts", e)
+  end
+
+  def self.boost_total(list)
+    (list || []).inject(1.0) { |a, x| a * x["mult"].to_f }.round(2)
+  end
+
+  def self.field_name_of(bt, field)
+    n = (bt.field.data.name rescue nil) || ($cache.FEData[field].name rescue nil) || ((FIELDEFFECTS[field][:name]) rescue nil)
+    n.to_s.empty? ? nil : n.to_s
+  end
+
+  # Rejuvenation/Reborn keep field data compiled inside the battle's field
+  # object; ask the game's own helpers so difficulty modes and conditions count.
+  def self.rejuv_field_data(bt, m, me, foe, type)
+    f = (bt.field rescue nil)
+    return nil unless f && f.respond_to?(:moveData) && m.respond_to?(:moveFieldBoost)
+    return { mult: 1.0, type: nil } unless (f.isFieldEffect? rescue true)
+    mult = (m.moveFieldBoost rescue 1).to_f
+    mult *= (m.typeFieldBoost(type, me, foe) rescue (m.typeFieldBoost(type) rescue 1)).to_f
+    md = (f.moveData(m.move) rescue nil) || {}
+    td = (f.typeData(type) rescue nil) || {}
+    out = { mult: mult.round(2), type: md[:typemod] || td[:typemod] }
+    out[:acc] = md[:accmod] if md.key?(:accmod)
+    out
+  end
+
   def self.fmt_mult(m)
     f = m.to_f
     f % 1 == 0 ? f.to_i.to_s : f.to_s
@@ -1651,17 +1844,35 @@ module PokeRPGLink
       (me.moves || []).each_with_index do |m, i|
         next if m.nil? || (m.move rescue nil).nil? || m.move == 0
         mv = move_info(m.move, (m.pp rescue nil), (m.totalpp rescue nil))
-        mtype = (m.type rescue nil) || ($cache.moves[m.move].type rescue nil)
+        btype = (m.type rescue nil) || ($cache.moves[m.move].type rescue nil)
+        # The type the move really has right now: the game's own pbType applies
+        # abilities (Liquid Voice, Pixilate…), fields, crests, Electrify…
+        mtype = (m.pbType(me) rescue nil) || btype
         mv["type"] = mtype.to_s
         mv["typeName"] = type_name(mtype)
+        if btype && mtype.to_s != btype.to_s
+          mv["baseType"] = btype.to_s
+          mv["baseTypeName"] = type_name(btype)
+          ab = (me.ability rescue nil)
+          ab = nil unless (ATE_ABILITIES + [:NORMALIZE, :LIQUIDVOICE]).include?(sym_id(ab))
+          mv["typeWhy"] = (ab && (abil(ab)["name"] rescue nil)) || field_name_of(bt, field)
+        end
         mv["slot"] = i
-        stab = (me.type1 == mtype || me.type2 == mtype) rescue false
+        stab = (me.pbHasType?(mtype) rescue nil)
+        stab = (me.type1 == mtype || me.type2 == mtype) rescue false if stab.nil?
         mv["stab"] = stab
-        mv["field"] = field_mult(field, m.move, mtype)
-        xt = field_extra_type(field, m.move)
+        foe0 = foes.first
+        fdata = rejuv_field_data(bt, m, me, foe0, mtype)
+        mv["field"] = fdata ? fdata[:mult] : field_mult(field, m.move, mtype)
+        xt = fdata ? fdata[:type] : field_extra_type(field, m.move)
+        xt = nil if xt && xt.to_s == mtype.to_s
         mv["fieldType"] = xt ? type_name(xt) : nil
-        fa = field_accuracy(field, m.move)
+        fa = fdata && fdata.key?(:acc) ? fdata[:acc] : field_accuracy(field, m.move)
         mv["fieldAcc"] = fa
+        fname = field_name_of(bt, field) || "Field"
+        fb = mv["field"] && mv["field"] != 1 ? [[fname, mv["field"]]] : nil
+        mv["boosts"] = power_boosts(bt, me, m, m.move, btype, mtype, mv["cat"], mv["pow"], foe0, fb)
+        mv["power"] = boost_total(mv["boosts"])
         others = (own + foes).reject { |o| o.index == me.index }
         mv["vs"] = others.map { |f|
           ftypes = [(f.type1 rescue nil), (f.type2 rescue nil), (f.effects[:Type3] rescue nil)]
@@ -2432,6 +2643,7 @@ module PokeRPGLink
           mv["slot"] = i
           mv["stab"] = (me.pbHasType?(mtype) rescue false)
           mv["field"] = 1
+          ess_move_extras(bt, me, m, mv, mtype)
           mv["vs"] = (own + foes).reject { |o| o.index == me.index }.map { |o|
             { "index" => o.index, "foe" => foes.include?(o), "mult" => (mv["cat"] == "status" ? nil : eff_mult(mtype, o)) } }
           td = (m.pbTarget(me) rescue nil)
@@ -2644,6 +2856,7 @@ module PokeRPGLink
           mv["cat"] = cat_s((m.calculatedCategory rescue nil) || (m.category rescue 2)) rescue mv["cat"]
           mv["stab"] = (me.pbHasType?(mtype) rescue false)
           mv["field"] = 1
+          ess_move_extras(bt, me, m, mv, mtype)
           mv["vs"] = all.reject { |o| o.index == me.index }.map { |o|
             { "index" => o.index, "foe" => (o.opposes?(me.index) rescue (o.index & 1) == 1),
               "mult" => (mv["cat"] == "status" ? nil : tect_eff(m, mtype, me, o)) } }
