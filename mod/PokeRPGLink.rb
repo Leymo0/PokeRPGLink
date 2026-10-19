@@ -22,7 +22,7 @@
 
 module PokeRPGLink
   unless const_defined?(:VERSION)
-    VERSION      = "1.0.2"
+    VERSION      = "1.0.3"
     STATE_EVERY  = 8     # frames between state refreshes (~7.5x per second)
     CMD_EVERY    = 3     # frames between command-folder checks
   end
@@ -182,7 +182,7 @@ module PokeRPGLink
         handle(line.split(/\s+/))
       rescue => e
         err("cmd #{line}", e)
-        toast("Couldn't do that: #{e.message}", "error")
+        toast("Couldn't do that: #{short_error(e)}", "error")
       end
     end
   end
@@ -556,7 +556,7 @@ module PokeRPGLink
       run_field(a)
     rescue => e
       err("field #{a.join(' ')}", e)
-      toast("Couldn't do that: #{e.message}", "error")
+      toast("Couldn't do that: #{short_error(e)}", "error")
     end
     @last_state = nil
   end
@@ -788,8 +788,25 @@ module PokeRPGLink
   #--------------------------------------------------------------------------
   # Name / data helpers
   #--------------------------------------------------------------------------
+  # Error text for the panel: one line, no giant object dumps.
+  def self.short_error(e)
+    m = e.message.to_s.gsub(/#<([A-Za-z:]+)[^>]*>?/m) { "a #{$1}" }.gsub(/\s+/, " ")
+    m = m[0, 140] + "…" if m.length > 140
+    m
+  end
+
+  # Species data. Rejuvenation 14 wraps it per form (MonWrapper → @pokemonData
+  # {"Normal Form" => MonData, …}); older Rebornverse builds store MonData directly.
+  def self.mondata(sym, form = nil)
+    d = ($cache.pkmn[sym] rescue nil)
+    return nil unless d
+    pd = (d.instance_variable_get(:@pokemonData) rescue nil)
+    return d unless pd.is_a?(Hash) && !pd.empty?
+    (form.is_a?(String) && pd[form]) || pd["Normal Form"] || pd.values.first
+  end
+
   def self.mon_name(sym)
-    ($cache.pkmn[sym].name rescue nil) || sym.to_s.capitalize
+    (mondata(sym).name rescue nil) || sym.to_s.capitalize
   end
 
   def self.type_name(t)
@@ -869,7 +886,7 @@ module PokeRPGLink
     path ||= (pbCheckPokemonIconFiles([sym, female, shiny, form, false], false) rescue nil)
     path = nil if path.to_s =~ /icon0+(\.png)?\z/i
     unless path
-      dex = ($cache.pkmn[sym].dexnum rescue nil)
+      dex = (mondata(sym).dexnum rescue nil)
       dex = sym if sym.is_a?(Integer)
       bases = [sym.to_s, sym.to_s.downcase]
       bases += [format("%03d", dex.to_i), dex.to_s] if dex
@@ -947,7 +964,7 @@ module PokeRPGLink
   # named by species (PIKACHU.png), dex number (025.png or 25.png), with
   # optional _<form> and/or s (shiny) variants: PIKACHU_1.png, PIKACHUs.png.
   def self.custom_icon(sym, form = 0, shiny = false)
-    dex = ($cache.pkmn[sym].dexnum rescue nil)
+    dex = (mondata(sym).dexnum rescue nil)
     names = [sym.to_s, sym.to_s.downcase, sym.to_s.capitalize]
     names += [format("%03d", dex), dex.to_s, format("%04d", dex)] if dex
     tries = []
@@ -967,7 +984,7 @@ module PokeRPGLink
   def self.species_sprite(sym)
     key = "sp:#{sym}"
     return @icon_cache[key] if @icon_cache.key?(key)
-    dex = ($cache.pkmn[sym].dexnum rescue nil)
+    dex = (mondata(sym).dexnum rescue nil)
     p = nil
     p = resolve_file(sprintf("Graphics/Battlers/%03d", dex)) if dex
     @icon_cache[key] = p
@@ -1042,7 +1059,7 @@ module PokeRPGLink
       "species" => sp.to_s,
       "speciesName" => mon_name(sp),
       "name" => p.name.to_s,
-      "dex" => ($cache.pkmn[sp].dexnum rescue 0).to_i,
+      "dex" => (mondata(sp).dexnum rescue 0).to_i,
       "form" => (p.form rescue 0).to_i,
       "formName" => (p.getFormName rescue nil),
       "level" => p.level.to_i,
@@ -1055,7 +1072,7 @@ module PokeRPGLink
       "item" => (p.item ? { "id" => p.item.to_s, "name" => item_name(p.item), "desc" => item_desc(p.item), "icon" => item_icon(p.item) } : nil),
       "stats" => { "hp" => p.totalhp.to_i, "atk" => p.attack.to_i, "def" => p.defense.to_i,
                    "spa" => p.spatk.to_i, "spd" => p.spdef.to_i, "spe" => p.speed.to_i },
-      "base" => stat_array(($cache.pkmn[sp].BaseStats rescue nil)),
+      "base" => stat_array((mondata(sp).BaseStats rescue nil)),
       "ivs" => stat_array(p.iv), "evs" => stat_array(p.ev),
       "moves" => moves,
       "shiny" => (p.isShiny? rescue false),
@@ -1371,10 +1388,10 @@ module PokeRPGLink
         end
         seen, owned = dex_flags(sp)
         list << { "species" => sp.to_s, "name" => mon_name(sp),
-                  "dex" => ($cache.pkmn[sp].dexnum rescue 0).to_i,
+                  "dex" => (mondata(sp).dexnum rescue 0).to_i,
                   "chance" => chance, "min" => (lmin == 999 ? nil : lmin), "max" => lmax,
                   "seen" => seen, "owned" => owned,
-                  "types" => [($cache.pkmn[sp].Type1 rescue nil), ($cache.pkmn[sp].Type2 rescue nil)].compact.uniq.map(&:to_s),
+                  "types" => [(mondata(sp).Type1 rescue nil), (mondata(sp).Type2 rescue nil)].compact.uniq.map(&:to_s),
                   "icon" => species_icon(sp, form) }
       end
       list.sort_by! { |e| -e["chance"] }
@@ -1445,7 +1462,7 @@ module PokeRPGLink
       eff << k.to_s
     end
     h = {
-      "index" => b.index, "own" => own, "dex" => ($cache.pkmn[sp].dexnum rescue 0).to_i,
+      "index" => b.index, "own" => own, "dex" => (mondata(sp).dexnum rescue 0).to_i,
       "species" => sp.to_s, "name" => b.name.to_s, "speciesName" => mon_name(sp),
       "level" => b.level.to_i,
       "hp" => b.hp.to_i, "maxhp" => b.totalhp.to_i,
@@ -1465,7 +1482,7 @@ module PokeRPGLink
       seen, owned = dex_flags(sp)
       h["owned"] = owned
       h["hpPct"] = (b.totalhp.to_i > 0 ? (100.0 * b.hp / b.totalhp).round : 0)
-      h["base"] = stat_array(($cache.pkmn[sp].BaseStats rescue nil))
+      h["base"] = stat_array((mondata(sp).BaseStats rescue nil))
     end
     h
   end
@@ -1601,13 +1618,15 @@ module PokeRPGLink
       err("dex locations", e)
     end
     list = []
-    $cache.pkmn.each do |sp, d|
+    $cache.pkmn.each do |sp, _raw|
+      d = mondata(sp)
       next unless d
       seen, owned = dex_flags(sp)
+      begin
       list << {
         "species" => sp.to_s, "name" => (d.name rescue sp.to_s).to_s, "dex" => (d.dexnum rescue 0).to_i,
         "types" => [(d.Type1 rescue nil), (d.Type2 rescue nil)].compact.uniq.map(&:to_s),
-        "base" => stat_array(d.BaseStats),
+        "base" => (stat_array(d.BaseStats) rescue nil),
         "abilities" => ((d.Abilities || []) rescue []).compact.map { |a| abil(a) },
         "kind" => (d.kind rescue "").to_s, "entry" => (d.dexentry rescue "").to_s,
         "height" => (d.Height rescue nil), "weight" => (d.Weight rescue nil),
@@ -1616,6 +1635,9 @@ module PokeRPGLink
         "where" => (found[sp] || []).uniq.first(12),
         "icon" => species_icon(sp), "sprite" => species_sprite(sp)
       }
+      rescue => e
+        err("dex #{sp}", e)
+      end
     end
     list.sort_by! { |e| e["dex"] }
     { "species" => list, "types" => ($cache.types.keys.map { |t| { "id" => t.to_s, "name" => type_name(t) } } rescue []) }
