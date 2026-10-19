@@ -2,6 +2,72 @@
 
 *by Leymo*
 
+## What it looks like
+
+The game runs on the top screen; PokeRPGLink is the touch panel on the bottom screen. Shown here with the *Daisy White* skin (Pokémon appear as the game's own icons on the real device).
+
+| In battle | |
+|---|---|
+| ![Battle](docs/images/page-battle.png)<br>**Battle** (Pokémon Rejuvenation) — your moves with type, power, PP and how well they hit; weather, field effect and screens up top | ![Field effect](docs/images/page-field.png)<br>**Tap the field** — what the current field effect does to moves and types |
+| ![Double battle](docs/images/page-double.png)<br>**Double battles** — compact cards; tap a move, then its target | ![Shadow and boss](docs/images/page-shadow.png)<br>**Shadow Pokémon & bosses** — heart gauge, boss shields, and *Call* |
+| ![Tectonic avatar](docs/images/page-tectonic.png)<br>**Pokémon Tectonic** — Avatars with health bars and two moves a turn, Numb/Dizzy and the rest of Tectonic's statuses | ![Bag in battle](docs/images/page-battle-bag.png)<br>**Bag in battle** — only items you can use right now; pick the Pokémon here, no bag screen on top |
+| ![Switch](docs/images/page-battle-mon.png)<br>**Switch** — HP, status and types for your whole team | |
+
+| Out of battle | |
+|---|---|
+| ![Area](docs/images/page-area.png)<br>**Area** — the wild Pokémon here: shadows until you've seen them, a Poké Ball once caught, morning/day/night icons | ![Party](docs/images/page-party.png)<br>**Pokémon** — your team at a glance |
+| ![Summary](docs/images/page-summary.png)<br>**Summary** — stats, ability, held item, move order | ![Bag](docs/images/page-bag.png)<br>**Bag** — use items, give them to a Pokémon |
+| ![Pokédex](docs/images/page-dex.png)<br>**Pokédex** — filter by type, seen or caught | |
+
+## Skins
+
+Eleven built-in skins, chosen from the panel's ⚙ button and remembered **per game**. Want your own? **[SKINS.md](SKINS.md)** explains how to make skins — colours, layouts, extra features, animations and sounds.
+
+| Juicy Battles: animations & sounds on game events | Dim when idle (OLED Black) |
+|---|---|
+| ![Juicy Battles](docs/images/juicy.gif) | ![Dim when idle](docs/images/dim.gif) |
+| Cards shake and flash when hit, numbers float up, stat changes pop — all from game events | Off by default. After 15 s without a touch the panel dims a little; any touch brings it back |
+
+**Default**
+
+![Default skin](docs/images/skin-default.png)
+
+**Classic DS**
+
+![Classic DS skin](docs/images/skin-classic-ds.png)
+
+**OLED Black**
+
+![OLED Black skin](docs/images/skin-oled-black.png)
+
+**Daisy**
+
+![Daisy skin](docs/images/skin-daisy.png)
+
+**Daisy White**
+
+![Daisy White skin](docs/images/skin-daisy-white.png)
+
+**Daisy OLED**
+
+![Daisy OLED skin](docs/images/skin-daisy-oled.png)
+
+**Matcha**
+
+![Matcha skin](docs/images/skin-matcha.png)
+
+**Retro Purple**
+
+![Retro Purple skin](docs/images/skin-retro-purple.png)
+
+**Super Retro**
+
+![Super Retro skin](docs/images/skin-retro-snes.png)
+
+**Catch Tracker**
+
+![Catch Tracker skin](docs/images/skin-catch-tracker.png)
+
 
 ## Supported games
 
@@ -37,7 +103,7 @@ The game runs on the top screen with your controller. The bottom screen shows a 
 - **✚ button (top right):** a virtual A/B/X/Y/L/R and D-pad, for things like choosing a target in double battles by touch.
 - **— button:** hides the panel into a small bubble; tap the bubble to bring it back.
 - **Game mechanics:** Rejuvenation's field effects are read from the game's own data, so fields added in future updates appear automatically — including type boosts, moves that gain a second type or change accuracy on a field, what changes the field, and temporary fields (with what they revert to). Shadow Pokémon get a purple Shadow tag and their heart gauge (on your party and on foes), the battle bar shows the game's real 4th button (**Call** against Shadow Pokémon), and Rejuvenation boss Pokémon show their remaining shields. Beyond that, PokeRPGLink catches what it wasn't specifically built for: **every line the battle prints** goes into a battle log (one line under the weather chips, tap for all of it), and **every active effect** on a Pokémon, side or field is listed — so a new game's custom mechanics still show up in some form. Things a game only tracks in its own code (a karma meter, a special energy bar) need a small extension — see **[EXTENDING.md](EXTENDING.md)**; a one-line extension can show any game variable on the panel.
-- **⚙ button:** skins, type icons, size, vibration, skin animations & sounds with volume, and **Dim when idle** (off by default). The skin and type icons are **remembered per game**: pick Matcha while playing Rejuvenation and Daisy in Tectonic, and each game comes back with its own look: after 15 seconds without a touch the panel dims slightly to protect the OLED screen — still readable, and any touch brings it straight back. Skins can re-theme the panel, change its layout or add features — see **[SKINS.md](SKINS.md)** to make your own. Built in: *Matcha* (matcha green and wood, one colour family — even the type icons), *Retro Purple* (translucent purple glass with neon edges), *Super Retro* (16-bit console grey and purple with red/yellow/blue/green face buttons), *Daisy*, *Daisy White* and *Daisy OLED* (colourful pill-shaped moves with a type icon, effectiveness and big PP, bouncy buttons and click sounds), plus *Classic DS* (light), *OLED Black*, *Catch Tracker* (an example plugin that adds an area-completion bar, a "not caught yet" banner in wild battles and a *To catch* tab) and *Juicy Battles* (an example effects skin — cards shake and flash on hits, chiptune bleeps on faints, catches and level-ups). Skins can react to game events (damage, faint, caught, level up, stat changes…) with their own animations and sound files.
+- **⚙ button:** skins, type icons, size, vibration, skin animations & sounds with volume, and **Dim when idle** (off by default: after 15 seconds without a touch the panel dims slightly to protect the OLED screen — still readable, and any touch brings it straight back). The skin and type icons are **remembered per game**: pick Matcha while playing Rejuvenation and Daisy in Tectonic, and each game comes back with its own look. Skins can re-theme the panel, change its layout or add features — see **[SKINS.md](SKINS.md)** to make your own. Built in: *Matcha* (matcha green and wood, one colour family — even the type icons), *Retro Purple* (translucent purple glass with neon edges), *Super Retro* (16-bit console grey and purple with red/yellow/blue/green face buttons), *Daisy*, *Daisy White* and *Daisy OLED* (colourful pill-shaped moves with a type icon, effectiveness and big PP, bouncy buttons and click sounds), plus *Classic DS* (light), *OLED Black*, *Catch Tracker* (an example plugin that adds an area-completion bar, a "not caught yet" banner in wild battles and a *To catch* tab) and *Juicy Battles* (an example effects skin — cards shake and flash on hits, chiptune bleeps on faints, catches and level-ups). Skins can react to game events (damage, faint, caught, level up, stat changes…) with their own animations and sound files.
 
 The panel window is created with Android's `FLAG_NOT_FOCUSABLE`, so touching the bottom screen **never takes controller focus away from the game** on the top screen.
 
