@@ -115,7 +115,7 @@ The panel window is created with Android's `FLAG_NOT_FOCUSABLE`, so touching the
 |---|---|
 | **Kirin** (Android RPG Maker XP runtime) — free on its Patreon, install guide at playkirin.com | The Rejuvenation devs recommend Kirin over JoiPlay for V14: smoother and fewer crashes. |
 | **The game's *Kirin* download** — rebornevo.com has Kirin builds for the Rebornverse games | Each runtime has its own build. Grab the Kirin one. |
-| **PokeRPGLink** (this project) | The bottom-screen panel + the mod. |
+| **PokeRPGLink** (this project) — install it with Obtainium, step 2 | The bottom-screen panel + the mod. The app installs the mod into your games for you. |
 
 JoiPlay still works if you prefer it — download the *JoiPlay* build of the game instead. PokeRPGLink works with either because it only talks to the game through files in the game folder.
 
@@ -125,13 +125,16 @@ JoiPlay still works if you prefer it — download the *JoiPlay* build of the gam
 
 Give Kirin (or JoiPlay) **All files access** in Android Settings → Apps → Kirin → Permissions, so the game can write its `PokeRPGLink` folder.
 
-## 2. Build the PokeRPGLink app (once)
+## 2. Download and set up Obtainium (recommended)
 
-The APK has to be built by you — two ways:
+[Obtainium](https://github.com/ImranR98/Obtainium) installs PokeRPGLink straight from this page's releases and tells you when there's a new version — one tap to update, no hunting for APKs.
 
-**A. GitHub (no software needed).** Make a new private repo, upload this whole folder (keep `.github/` — on the website use *Add file → Upload files*), open the **Actions** tab, wait for **Build PokeRPGLink APK** to go green (≈4 min), open the run, download **PokeRPGLink-apk**, unzip, copy `app-release.apk` to the Thor and install it.
+1. **Install Obtainium** on the Thor: download the latest `app-…-release.apk` from [Obtainium's releases](https://github.com/ImranR98/Obtainium/releases/latest) (pick *arm64-v8a* if you're asked) and open it. Allow *Install unknown apps* for your browser when Android asks.
+2. Open Obtainium → **Add App** → paste `https://github.com/Leymo0/PokeRPGLink` → **Add**.
+3. Tap **Install**. PokeRPGLink appears in your app drawer.
+4. From now on Obtainium shows an update badge when a new version comes out. Tap **Update** — your settings, skins and games are kept, and the app updates the mod inside each game by itself the next time you open it.
 
-**B. Android Studio on your PC.** *Open* the `android` folder, let it sync, then *Build → Build APK(s)*.
+**Without Obtainium:** open the [latest release](https://github.com/Leymo0/PokeRPGLink/releases/latest), download `PokeRPGLink-….apk` on the Thor and open it. To update later, install the new APK the same way over the old one.
 
 ## 3. Set it up on the Thor
 
@@ -159,25 +162,6 @@ Once setup is done, **tapping the PokeRPGLink icon is all you need** — from ei
 
 ---
 
-## 5. Automatic updates with Obtainium
-
-[Obtainium](https://github.com/ImranR98/Obtainium) installs apps straight from GitHub releases and tells you when there's a new one. Set it up once:
-
-1. **Put the project on GitHub** (public is simplest; for a private repo, add a GitHub token in Obtainium's settings).
-2. **Make a signing key — once, and keep it forever.** Every version must be signed with the same key or Android refuses the update. On your PC (Android Studio includes `keytool`):
-   ```
-   keytool -genkeypair -v -keystore pokerpglink.jks -alias pokerpglink -keyalg RSA -keysize 2048 -validity 10000
-   ```
-   Back up `pokerpglink.jks` and its password somewhere safe. Never commit it.
-3. **Give the key to GitHub:** repo → Settings → Secrets and variables → Actions → *New repository secret*:
-   - `KEYSTORE_BASE64` — the key file as text. Windows PowerShell: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("pokerpglink.jks")) | Set-Clipboard`, then paste. Mac/Linux: `base64 -w0 pokerpglink.jks`.
-   - `KEYSTORE_PASSWORD`, `KEY_ALIAS` (`pokerpglink`), `KEY_PASSWORD` (the same as the keystore password unless you chose another).
-4. **Publish a version:** push a tag — `git tag v1.0.1` then `git push origin v1.0.1` (or GitHub → Releases → *Draft a new release* → new tag `v1.0.1`). The *Release PokeRPGLink* action builds the signed APK and attaches it to the release. Each new version needs a higher number.
-5. **On the Thor:** install Obtainium → *Add App* → paste your repo URL (`https://github.com/<you>/PokeRPGLink`) → *Add* → *Install*. From then on Obtainium shows updates; one tap installs them.
-6. **Switching over:** uninstall the copy you installed from Android Studio once — it was signed with a different (debug) key. Your settings start fresh.
-
-The app updates the mod inside each game by itself the next time you open it, so a new release is all it takes. Building on your PC afterwards? Create `android/keystore.properties` with `storeFile=`, `storePassword=`, `keyAlias=`, `keyPassword=` so local builds use the same key and can update the Obtainium install.
-
 ## Troubleshooting
 
 - **Panel says "Waiting for the game"** — the mod isn't running. Check the mod is in the right Mods folder and restart the game. Look in `<game>/PokeRPGLink/log.txt`; the first line lists which hooks loaded.
@@ -198,19 +182,6 @@ Bottom screen: PokeRPGLink app → non-focusable overlay window → WebView UI (
 
 Battle taps are fed through the game's own menus (it moves the menu cursor and presses A for you), so all the game's rules and checks still apply. Out-of-battle actions (save, fly, items) wait until you're standing still with no text box open.
 
-## Project layout
+## For developers
 
-```
-mod/PokeRPGLink.rb        the in-game mod (Ruby)
-ui/                    the bottom-screen interface (HTML/CSS/JS); open ui/index.html#battle in a browser to preview
-android/               the Android app (Java, no dependencies)
-ui/skins/              built-in skins (and examples for making your own — see SKINS.md)
-test/                  mock games + tests:  ruby test/run_tests.rb             (Rejuvenation-shaped)
-                                            ruby test/run_reborn_tests.rb      (Reborn/Desolation-shaped)
-                                            ruby test/run_essentials_tests.rb  (Essentials v21 / Infinite Fusion-shaped)
-.github/workflows/     builds the APK on GitHub
-```
-
-Tested with mock games built from Rejuvenation 13.5's scripts, a Reborn-shaped variant, and an Essentials v21 mock; every Essentials API the mod calls was checked against the real Infinite Fusion and Essentials v21 source. Reborn's and Desolation's exact scripts weren't available, and nothing has run on a real Thor yet — expect a first round of small fixes. Every hook fails on its own and is logged in `PokeRPGLink/log.txt`, so a mismatch turns off one feature rather than breaking the game.
-
-**How the mod is organised:** a shared core (file bridge, commands, virtual buttons, battle-menu driving) plus two adapters — Rebornverse (the default) and Essentials (`PokeRPGLink::EssMethods`, switched on when the game has `GameData::Species`). A new engine family means a new adapter module that fills in the same state; the UI and app don't change.
+Building the app yourself, signing releases, running the tests and the project layout are in **[BUILDING.md](BUILDING.md)**. Making skins: **[SKINS.md](SKINS.md)**. Adding support for a game's own mechanics: **[EXTENDING.md](EXTENDING.md)**.
