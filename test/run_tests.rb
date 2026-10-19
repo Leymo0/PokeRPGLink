@@ -58,6 +58,13 @@ require "zlib"
 idat = png[33 + 8, png[33, 4].unpack1("N")] rescue ""
 pix = (Zlib::Inflate.inflate(idat) rescue "")
 check "packed icon drawn into the cache as a PNG (first frame only)", grim2["icon"].to_s.start_with?("PokeRPGLink/cache/") && png.start_with?("\x89PNG".b) && png[16, 8].unpack("NN") == [4, 4] && pix.bytesize == 4 * (4 * 4 + 1)
+# Rejuvenation 14: no file lookup works at all; only the game's own drawing function does
+class FakeIcon; def width; 128; end; def height; 64; end; def get_pixel(x, y); FakeColor.new(1, 2, 3, 255); end; end
+def pbIconBitmap(sym, *a); sym == :ZUBAT ? FakeIcon.new : raise("no icon"); end
+PokeRPGLink.instance_variable_set(:@icon_cache, {})
+zi = PokeRPGLink.species_icon(:ZUBAT)
+zpng = (File.binread(zi) rescue "")
+check "icon drawn by the game's own icon function", zi.to_s.start_with?("PokeRPGLink/cache/") && zpng[16, 8].unpack("NN") == [64, 64]
 check "period is night", s["map"]["period"] == "night"
 check "map position", s["map"]["pos"] == [0, 22, 29]
 check "party has 2", s["party"].length == 2
@@ -173,6 +180,10 @@ check "status move has no mult", tw["vs"][0]["mult"].nil?
 foe = b["battlers"].find { |x| !x["own"] }
 check "foe hp pct + stages + effects", foe["hpPct"] == 75 && foe["stages"]["atk"] == 1 && foe["stages"]["spe"] == -1 && foe["effects"] == ["Confusion"]
 check "battle party list", b["party"].length == 2 && b["party"][0]["inBattle"]
+battle.partyorder = [[0, 1, 2, 3, 4, 5], [0, 1, 2, 3, 4, 5]]   # Rejuvenation 14: one order per side
+frames(20)
+check "per-side party order (Rejuvenation 14)", state["battle"]["party"].length == 2
+battle.partyorder = [0, 1, 2, 3, 4, 5]
 # --- double battle targeting ---
 dbl = PokeBattle_Battle.new
 dbl.doublebattle = true
