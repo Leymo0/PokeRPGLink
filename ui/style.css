@@ -342,3 +342,7 @@ body.idle-dim::after { opacity: .32; }
 .offline .warn { color: var(--amber); }
 
 .byline { font: 600 12px var(--ui); color: var(--muted); opacity: .7; letter-spacing: .02em; margin-top: 6px; }
+
+/* one battle action at a time: moves dim while the turn plays out */
+body.battle-busy .moves .move, body.battle-busy #tabs.battle button { opacity: .5; pointer-events: none; }
+.empty .sm { font-size: 12px; }
