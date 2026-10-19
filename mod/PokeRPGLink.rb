@@ -22,7 +22,7 @@
 
 module PokeRPGLink
   unless const_defined?(:VERSION)
-    VERSION      = "1.0.9"
+    VERSION      = "1.0.10"
     STATE_EVERY  = 8     # frames between state refreshes (~7.5x per second)
     CMD_EVERY    = 3     # frames between command-folder checks
   end
@@ -153,7 +153,7 @@ module PokeRPGLink
         err("poll", e)
       end
     end
-    (icon_jobs_tick rescue nil) if @frame % 2 == 0
+    (icon_jobs_tick rescue nil) if @frame % 8 == 0
     if @frame % 90 == 0   # heartbeat: the panel knows the game is running even when nothing changes
       (write_file("alive.txt", @frame.to_s) rescue nil)
     end
@@ -938,12 +938,12 @@ module PokeRPGLink
   end
 
   def self.icon_jobs_tick
+    # One icon every 8 frames, never in battle or while a message is up, so
+    # drawing the Pokédex icons never makes the game stutter.
     return if @icon_jobs.nil? || @icon_jobs.empty? || @battle
-    2.times do
-      sym = @icon_jobs.shift
-      break unless sym
-      (species_icon(sym) rescue nil)
-    end
+    return if ($game_temp.message_window_showing rescue false)
+    sym = @icon_jobs.shift
+    (species_icon(sym) rescue nil) if sym
   end
 
   # The icon the game itself draws (its party screen icon). Tries the game's own
@@ -1011,7 +1011,7 @@ module PokeRPGLink
       w = [bmp.width, h].min
       Dir.mkdir("PokeRPGLink") unless File.directory?("PokeRPGLink")
       Dir.mkdir("PokeRPGLink/cache") unless File.directory?("PokeRPGLink/cache")
-      write_png(out, bmp, w, h)
+      save_png(out, bmp, w, h)
       out
     rescue Exception => e
       @icon_err ||= "save error: #{e.class}: #{e.message.to_s[0, 120]}"
@@ -1041,7 +1041,7 @@ module PokeRPGLink
       w = [h, w].min if first_frame && w >= 2 * h       # 2-frame icon strips
       Dir.mkdir("PokeRPGLink") unless File.directory?("PokeRPGLink")
       Dir.mkdir("PokeRPGLink/cache") unless File.directory?("PokeRPGLink/cache")
-      write_png(out, bmp, w, h)
+      save_png(out, bmp, w, h)
       out
     rescue => e
       err("image #{path}", e)
@@ -1049,6 +1049,27 @@ module PokeRPGLink
     ensure
       (bmp.dispose rescue nil) unless shared
     end
+  end
+
+  # The runtime's own PNG writer (mkxp-z Bitmap#to_file) is far faster than
+  # reading pixels one by one; fall back to that only when it's missing.
+  def self.save_png(file, bmp, w, h)
+    if bmp.respond_to?(:to_file) && !@no_to_file
+      begin
+        src = bmp
+        if w != bmp.width || h != bmp.height
+          src = Bitmap.new(w, h)
+          src.blt(0, 0, bmp, Rect.new(0, 0, w, h))
+        end
+        src.to_file(file)
+        (src.dispose rescue nil) unless src.equal?(bmp)
+        ok = (File.open(file, "rb") { |f| f.read(4) } rescue "") == "\x89PNG".b
+        return if ok
+      rescue Exception
+      end
+      @no_to_file = true          # didn't work here: use the slow writer from now on
+    end
+    write_png(file, bmp, w, h)
   end
 
   def self.write_png(file, bmp, w, h)
@@ -2044,6 +2065,14 @@ module PokeRPGLink
   # Static exports (written on request)
   #--------------------------------------------------------------------------
   def self.build_dex
+    found = (@dex_where ||= dex_where)
+    list = []
+    build_dex_list(found, list)
+  end
+
+  # Where each species can be found — map data never changes while playing,
+  # so this is worked out once per session.
+  def self.dex_where
     found = {}
     begin
       $cache.mapdata.each do |mid, md|
@@ -2063,7 +2092,10 @@ module PokeRPGLink
     rescue => e
       err("dex locations", e)
     end
-    list = []
+    found
+  end
+
+  def self.build_dex_list(found, list)
     $cache.pkmn.each do |sp, _raw|
       d = mondata(sp)
       next unless d
@@ -2079,7 +2111,7 @@ module PokeRPGLink
         "evos" => ((d.evolutions || []).map { |e| e.is_a?(Array) ? mon_name(e[0]) : nil }.compact rescue []),
         "seen" => seen, "owned" => owned,
         "where" => (found[sp] || []).uniq.first(12),
-        "icon" => quick_icon(sp), "sprite" => species_sprite(sp)
+        "icon" => (seen ? quick_icon(sp) : nil), "sprite" => (seen ? species_sprite(sp) : nil)
       }
       rescue => e
         err("dex #{sp}", e)
