@@ -187,7 +187,8 @@ public class BridgeJs {
                 out = "data:" + mime + ";base64," + android.util.Base64.encodeToString(b, 0, off, android.util.Base64.NO_WRAP);
             } catch (Exception ignored) { }
         }
-        imgCache.put(key, out);
+        // icons the game is still drawing into PokeRPGLink/cache: don't remember a miss
+        if (!out.isEmpty() || !rel.startsWith("PokeRPGLink/cache/")) imgCache.put(key, out);
         return out;
     }
 
