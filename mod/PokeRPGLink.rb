@@ -22,7 +22,7 @@
 
 module PokeRPGLink
   unless const_defined?(:VERSION)
-    VERSION      = "1.0.8"
+    VERSION      = "1.0.9"
     STATE_EVERY  = 8     # frames between state refreshes (~7.5x per second)
     CMD_EVERY    = 3     # frames between command-folder checks
   end
@@ -537,6 +537,14 @@ module PokeRPGLink
   # Which button toggles Mega/Z in the fight menu, and how party slots map to
   # the battle party screen's order. Adapters override these.
   def self.special_button; "X"; end
+
+  # Rejuvenation 14 returns one party per trainer on a side ([[mon, …]]);
+  # older games return the Pokémon directly.
+  def self.side_party(bt, idx)
+    party = (bt.pbParty(idx) rescue nil) || []
+    party = party[0] if party[0].is_a?(Array)
+    party
+  end
 
   def self.display_index(pi)
     order = (@battle.partyorder rescue nil) || (0...6).to_a
@@ -1121,6 +1129,24 @@ module PokeRPGLink
     false
   end
 
+  # Seen / caught totals from the same per-species flags the panel shows,
+  # recounted every ~10 seconds (the game's own counters can disagree).
+  def self.dex_counts
+    return nil unless (($cache.pkmn.respond_to?(:keys) && $Trainer.pokedex.respond_to?(:dexList)) rescue false)
+    if @dex_counts.nil? || (@frame.to_i - @dex_counts_at.to_i).abs > 600
+      seen = owned = 0
+      ($cache.pkmn.keys rescue []).each do |sp|
+        next unless mondata(sp)          # same species the Pokédex tab lists
+        a, b = dex_flags(sp)
+        seen += 1 if a
+        owned += 1 if b
+      end
+      @dex_counts = [seen, owned]
+      @dex_counts_at = @frame.to_i
+    end
+    @dex_counts
+  end
+
   def self.dex_flags(sym)
     pd = ($Trainer.pokedex rescue nil)
     # The game's own question, when it has one
@@ -1589,8 +1615,8 @@ module PokeRPGLink
       "name" => trainer.name.to_s,
       "money" => (trainer.money rescue 0).to_i,
       "badges" => (trainer.numbadges rescue 0).to_i,
-      "seen" => (trainer.pokedex.seenCount rescue nil),
-      "owned" => (trainer.pokedex.ownedCount rescue nil)
+      "seen" => (dex_counts[0] rescue nil) || (trainer.pokedex.seenCount rescue nil),
+      "owned" => (dex_counts[1] rescue nil) || (trainer.pokedex.ownedCount rescue nil)
     }
     st["queue"] = @field_queue.map { |a| a[0] } + @battle_queue.map { |q| q[:t].to_s }
     st["map"] = build_map rescue (err("map", $!); nil)
@@ -1723,7 +1749,7 @@ module PokeRPGLink
         h["boss"] = { "shields" => (obj.shieldCount rescue nil) || ((obj.pokemon.shieldCount rescue nil)) }
       end
     end
-    pobjs = ((@battle.pbParty(0) rescue nil) || [])
+    pobjs = side_party(@battle, 0)
     (b["party"] || []).each do |h|
       sh = shadow_info(pobjs[h["slot"]])
       h["shadow"] = sh if sh
@@ -1999,7 +2025,7 @@ module PokeRPGLink
 
     # Player party for the Switch tab, in the battle's display order
     begin
-      party = bt.pbParty(0)
+      party = side_party(bt, 0)
       order = (bt.partyorder rescue nil) || (0...party.length).to_a
       order = order[0] if order[0].is_a?(Array)        # Rejuvenation 14: one order per side
       order.each do |pi|
@@ -2062,9 +2088,8 @@ module PokeRPGLink
     list.sort_by! { |e| e["dex"] }
     # Like the game's own Pokédex: the list stops at the last species you've seen
     last = list.select { |e| e["seen"] }.map { |e| e["dex"] }.max || 0
-    { "species" => list, "lastSeen" => last,
-      "gameSeen" => (($Trainer.pokedex.getSeenCount rescue nil) || ($Trainer.pokedex.seenCount rescue nil)),
-      "gameOwned" => (($Trainer.pokedex.getOwnedCount rescue nil) || ($Trainer.pokedex.ownedCount rescue nil)),
+    @dex_counts = nil
+    { "v" => VERSION, "species" => list, "lastSeen" => last,
       "types" => ($cache.types.keys.map { |t| { "id" => t.to_s, "name" => type_name(t) } } rescue []) }
   end
 
@@ -2813,7 +2838,7 @@ module PokeRPGLink
       end
       types = []
       (GameData::Type.each { |t| types << { "id" => t.id.to_s, "name" => t.name.to_s } unless (t.pseudo_type rescue false) }) rescue nil
-      { "species" => list.sort_by { |e| e["dex"] }, "types" => types }
+      { "v" => VERSION, "species" => list.sort_by { |e| e["dex"] }, "types" => types }
     end
   end
 end
@@ -3235,7 +3260,7 @@ PokeRPGLink.hook("battle-switch") do
         cancancel = __a[2]
         pi = PokeRPGLink.take_switch
         if pi
-          party = @battle.pbParty(index)
+          party = PokeRPGLink.side_party(@battle, index)
           ok = party[pi] && !party[pi].isEgg? &&
                (lax ? @battle.pbCanSwitchLax?(index, pi, true) : @battle.pbCanSwitch?(index, pi, true))
           return pi if ok
