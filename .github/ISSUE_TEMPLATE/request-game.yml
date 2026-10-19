@@ -1,0 +1,57 @@
+name: Request a game
+description: Ask for PokeRPGLink to support a Pokémon fangame (or fix one that only half works)
+title: "[Game request] "
+labels: ["game request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks! The fastest way to get a game supported is the **log file**: install PokeRPGLink, start the game once, play a little (ideally one battle), then attach `<game folder>/PokeRPGLink/log.txt` below. It shows exactly which parts work and which don't.
+  - type: input
+    id: game
+    attributes:
+      label: Game name
+      placeholder: e.g. Pokémon Vanguard
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Game version
+      placeholder: e.g. 1.2.7
+  - type: input
+    id: link
+    attributes:
+      label: Where to download it
+      placeholder: link to the game's website or page
+  - type: dropdown
+    id: runtime
+    attributes:
+      label: How do you run it?
+      options:
+        - Kirin
+        - JoiPlay
+        - Something else
+    validations:
+      required: true
+  - type: dropdown
+    id: state
+    attributes:
+      label: What happens right now?
+      options:
+        - The panel never connects ("Waiting for the game")
+        - It connects but some parts are wrong or empty
+        - It crashes the game
+        - I haven't tried yet
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: What's wrong or missing?
+      description: Screenshots of the panel and the game help a lot.
+  - type: textarea
+    id: log
+    attributes:
+      label: log.txt
+      description: Drag the file from `<game folder>/PokeRPGLink/log.txt` here.
