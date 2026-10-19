@@ -216,7 +216,10 @@ check "foe hp pct + stages + effects", foe["hpPct"] == 75 && foe["stages"]["atk"
 check "battle party list", b["party"].length == 2 && b["party"][0]["inBattle"]
 battle.partyorder = [[0, 1, 2, 3, 4, 5], [0, 1, 2, 3, 4, 5]]   # Rejuvenation 14: one order per side
 frames(20)
-check "per-side party order (Rejuvenation 14)", state["battle"]["party"].length == 2
+class PokeBattle_Battle; alias_method :__old_party, :pbParty; def pbParty(i); [__old_party(i)]; end; end   # one party per trainer
+frames(20)
+check "per-side party order (Rejuvenation 14)", state["battle"]["party"].length == 2 && state["battle"]["party"][0]["species"]
+class PokeBattle_Battle; alias_method :pbParty, :__old_party; end
 battle.partyorder = [0, 1, 2, 3, 4, 5]
 # --- double battle targeting ---
 dbl = PokeBattle_Battle.new
