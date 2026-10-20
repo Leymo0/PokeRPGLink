@@ -279,8 +279,9 @@ const SKIN_SWATCH = {
   "retro-purple": ["#10061f", "#2a1650", "#c77dff"], "retro-snes": ["#bdbac6", "#e7e5ec", "#5b4b9e"],
   "vertical-oled": ["#000000", "#101018", "#ffb627"], "vertical-retro": ["#bdbac6", "#e7e5ec", "#5b4b9e"],
   "vertical-white": ["#e9f0fb", "#ffffff", "#ffb627"], "vertical-purple": ["#10061f", "#2a1650", "#c77dff"],
+  pokedex: ["#8fd6f0", "#ffffff", "#e8343a"],
 };
-const SKIN_TAG = { "catch-tracker": "Adds features", juicy: "Effects" };
+const SKIN_TAG = { "catch-tracker": "Adds features", juicy: "Effects", pokedex: "Lively" };
 let switching = false;
 
 function loadSkin() {

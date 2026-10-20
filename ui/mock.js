@@ -130,6 +130,7 @@
         { id: "vertical-retro", name: "Vertical Retro", author: "Leymo", builtin: true, tag: "Vertical", typeIcons: ["White icons"], css: "skins/vertical-retro/skin.css", js: "skins/vertical-retro/skin.js" },
         { id: "vertical-white", name: "Vertical White", author: "Leymo", builtin: true, tag: "Vertical", typeIcons: ["White icons"], css: "skins/vertical-white/skin.css", js: "skins/vertical-white/skin.js" },
         { id: "vertical-purple", name: "Vertical Purple", author: "Leymo", builtin: true, tag: "Vertical", typeIcons: [], css: "skins/vertical-purple/skin.css", js: "skins/vertical-purple/skin.js" },
+        { id: "pokedex", name: "Pokédex", author: "Leymo", builtin: true, tag: "Lively", typeIcons: ["White icons"], css: "skins/pokedex/skin.css", js: "skins/pokedex/skin.js" },
         { id: "juicy", name: "Juicy Battles", author: "Leymo", description: "Example effects skin.", builtin: true, css: "skins/juicy/skin.css", js: "skins/juicy/skin.js" }]);
     },
     listTypePacks() { return window.__packs ? JSON.stringify(window.__packs) : "[]"; },

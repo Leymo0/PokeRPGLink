@@ -1,0 +1,168 @@
+/* ===== Pokédex — a red handheld shell around a sky-blue map grid =====
+   Chunky white panels with dark outlines, outlined bold text, a starburst
+   FIGHT button and a PokéNav-style app dock. Animations live in skin.js and
+   in the @keyframes below; both stop when "Animations & sounds" is off. */
+:root {
+  --x-red: #e8343a; --x-red-d: #a8161f; --x-red-l: #ff6a6a;
+  --x-sky: #8fd6f0; --x-sky-l: #b5e6f7; --x-grid: #6cc1e2;
+  --x-ink: #24242c;  --x-char: #3a3a44; --x-char-l: #55555f;
+  --x-paper: #ffffff; --x-paper-2: #eef6fb; --x-line: #24242c;
+  --x-green: #3cc45a; --x-yellow: #f7c531; --x-blue: #3b7fe6; --x-purple: #9a6ce0;
+
+  --ink: var(--x-sky); --panel: var(--x-paper); --panel-2: var(--x-paper-2); --line: #b9d6e6;
+  --text: var(--x-ink); --muted: #5d6b7a; --amber: var(--x-yellow); --caught: #1f9e45;
+  --fight: var(--x-red); --bag: var(--x-yellow); --mon: var(--x-green); --run: var(--x-blue);
+  --r-btn: 14px; --r-chip: 7px;
+}
+
+/* outlined bold lettering, like the handheld's menus */
+.x-out, #tabs.battle button, .move .mn, .move .ppbig, #bar .place {
+  text-shadow: -1.5px -1.5px 0 var(--x-ink), 1.5px -1.5px 0 var(--x-ink), -1.5px 1.5px 0 var(--x-ink), 1.5px 1.5px 0 var(--x-ink), 0 2px 0 var(--x-ink);
+}
+
+/* ---- the screen: map grid that drifts slowly ---- */
+body {
+  background-color: var(--x-sky);
+  background-image:
+    radial-gradient(120% 90% at 50% 0%, rgba(255,255,255,.35), transparent 60%),
+    linear-gradient(var(--x-grid) 1.5px, transparent 1.5px),
+    linear-gradient(90deg, var(--x-grid) 1.5px, transparent 1.5px);
+  background-size: 100% 100%, 26px 26px, 26px 26px;
+  animation: x-drift 30s linear infinite;
+}
+@keyframes x-drift { to { background-position: 0 0, 26px 26px, 26px 26px; } }
+body.x-still, body.x-still * { animation: none !important; }
+
+/* ---- top: red shell with a dark slanted name plate ---- */
+#bar {
+  background: linear-gradient(180deg, var(--x-red-l), var(--x-red) 45%, var(--x-red-d));
+  border: 0; border-bottom: 3px solid var(--x-ink); color: #fff; min-height: 44px; gap: 8px;
+}
+#bar .place {
+  flex: 0 1 auto; margin-right: auto; color: #fff; font-size: 17px;
+  background: var(--x-char); padding: 3px 22px 3px 12px; border-radius: 6px 0 0 6px;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
+}
+#bar .sub { color: #d9dde6; text-shadow: none; }
+#bar .period { background: #fff; color: var(--x-ink); border: 2px solid var(--x-ink); }
+#bar .padbtn { background: #fff; color: var(--x-red-d); border: 2px solid var(--x-ink); border-radius: 10px; box-shadow: 0 2px 0 var(--x-ink); }
+#bar .dot { box-shadow: 0 0 0 2px var(--x-ink); }
+
+/* ---- bottom: PokéNav app dock ---- */
+#tabs { background: linear-gradient(180deg, var(--x-char-l), var(--x-char)); border-top: 3px solid var(--x-ink); padding: 7px 8px 9px; gap: 6px; }
+#tabs:not(.battle) button {
+  background: #fff; color: var(--x-ink); border-radius: 12px; border: 2px solid var(--x-ink);
+  box-shadow: 0 3px 0 var(--x-ink); padding: 4px 0 2px; font-size: 11px; font-weight: 800;
+}
+#tabs:not(.battle) button svg { width: 24px; height: 24px; }
+#tabs:not(.battle) button:nth-child(1) svg { color: var(--x-green); }
+#tabs:not(.battle) button:nth-child(2) svg { color: var(--x-red); }
+#tabs:not(.battle) button:nth-child(3) svg { color: #d99a00; }
+#tabs:not(.battle) button:nth-child(4) svg { color: var(--x-blue); }
+#tabs:not(.battle) button:nth-child(5) svg { color: var(--x-red-d); }
+#tabs:not(.battle) button:nth-child(6) svg { color: var(--x-purple); }
+#tabs:not(.battle) button[aria-current="true"] {
+  background: linear-gradient(180deg, #fff6c7, var(--x-yellow)); transform: translateY(-3px);
+  box-shadow: 0 5px 0 var(--x-ink), 0 0 0 3px #fff inset;
+}
+
+/* ---- the four battle buttons: starburst FIGHT, then three shaped buttons ---- */
+#tabs.battle { grid-template-columns: 1.55fr 1fr 1fr 1fr; grid-auto-flow: column; padding: 8px 8px 10px; gap: 7px; overflow: visible; position: relative; z-index: 3; }
+#tabs.battle button { color: #fff; font-size: 17px; font-weight: 800; letter-spacing: .03em; border: 2.5px solid var(--x-ink);
+  box-shadow: inset 0 -5px 0 rgba(0,0,0,.22), 0 3px 0 var(--x-ink); padding: 11px 0;
+  background-image: radial-gradient(rgba(255,255,255,.28) 1.2px, transparent 1.6px), linear-gradient(180deg, rgba(255,255,255,.35), rgba(255,255,255,0) 55%);
+  background-size: 6px 6px, 100% 100%; }
+#tabs.battle .b-fight {
+  border: 0; box-shadow: none; position: relative; margin-top: -16px; padding: 18px 0; font-size: 20px;
+  background-color: transparent; background-image: none; isolation: isolate;
+}
+#tabs.battle .b-fight::before, #tabs.battle .b-fight::after {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  clip-path: polygon(50% 0%, 57% 14%, 69% 4%, 70% 20%, 85% 15%, 80% 30%, 97% 32%, 86% 45%, 100% 55%, 85% 63%, 94% 78%, 77% 77%, 76% 95%, 63% 86%, 52% 100%, 43% 86%, 30% 96%, 28% 79%, 10% 82%, 16% 66%, 0% 56%, 14% 45%, 4% 30%, 21% 30%, 17% 12%, 32% 19%, 37% 2%, 45% 14%);
+}
+#tabs.battle .b-fight::before { background: var(--x-ink); transform: scale(1.06); }
+#tabs.battle .b-fight::after {
+  background: radial-gradient(rgba(255,230,120,.5) 1.2px, transparent 1.7px) 0 0 / 6px 6px, radial-gradient(circle at 50% 45%, #ff8a5a, var(--x-red) 55%, var(--x-red-d));
+  animation: x-burst 2.4s ease-in-out infinite;
+}
+@keyframes x-burst { 0%, 100% { transform: scale(.97) rotate(-2deg); } 50% { transform: scale(1.03) rotate(2deg); } }
+#tabs.battle .b-bag { background-color: var(--x-yellow); color: #fff; border-radius: 14px 14px 22px 8px; }
+#tabs.battle .b-mon { background-color: var(--x-green); border-radius: 999px; }
+#tabs.battle .b-run { background-color: var(--x-blue); border-radius: 8px 22px 14px 14px; }
+#tabs.battle button[aria-current="true"]:not(.b-fight) { box-shadow: inset 0 -5px 0 rgba(0,0,0,.22), 0 3px 0 var(--x-ink), 0 0 0 3px #fff; }
+#tabs.battle .b-fight[aria-current="true"]::before { background: #fff; transform: scale(1.1); }
+
+/* ---- panels: white, thick outline, red title tab ---- */
+.fighter, .mini, .tile, .row-btn, .tgt, .logline, .savecard {
+  background: var(--x-paper); color: var(--x-ink); border: 2.5px solid var(--x-line) !important; border-radius: 14px;
+  box-shadow: 0 3px 0 var(--x-line);
+}
+.fighter { position: relative; overflow: hidden; padding-top: 10px; }
+.fighter::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 6px; background: repeating-linear-gradient(90deg, var(--x-blue) 0 12px, #5b97ef 12px 24px); }
+.fighter.foe::before { background: repeating-linear-gradient(90deg, var(--x-red) 0 12px, var(--x-red-l) 12px 24px); }
+.mini.foe { box-shadow: inset 0 5px 0 var(--x-red), 0 3px 0 var(--x-line); }
+.mini.own { box-shadow: inset 0 5px 0 var(--x-blue), 0 3px 0 var(--x-line); }
+.mini.active { outline: 3px solid var(--x-yellow); outline-offset: 1px; }
+.fighter .top b, .mini .r1 b { color: var(--x-ink); }
+.hp { background: #2b2b33; height: 9px; border: 2px solid var(--x-ink); border-radius: 6px; }
+.hp > i { background: linear-gradient(180deg, #7ff59a, #2fbf55); border-radius: 0; }
+.hp.mid > i { background: linear-gradient(180deg, #ffe680, #f0b51f); }
+.hp.low > i { background: linear-gradient(180deg, #ff9a8a, #e0362c); }
+.chip { background: var(--x-paper-2); color: var(--x-ink); border: 1.5px solid #c4dbe8; }
+.chip.up { color: #13894a; } .chip.down { color: #c0392b; }
+.type { border: 1.5px solid rgba(0,0,0,.45); }
+.ico .fallback { background: var(--x-paper-2); color: var(--x-ink); border: 2px solid #c4dbe8; }
+.logline { color: var(--x-ink); }
+.logline.spacer { background: none; border: 0 !important; box-shadow: none; }
+.bstrip button { background: #fff; color: var(--x-ink); border: 2px solid var(--x-ink); box-shadow: 0 2px 0 var(--x-ink); }
+.bstrip .fieldchip { background: linear-gradient(90deg, #9a6ce0, var(--x-blue)); color: #fff; }
+
+/* headings sit on a red ribbon */
+#main h2 { color: #fff; background: var(--x-red); border: 2px solid var(--x-ink); border-radius: 8px; padding: 2px 10px; box-shadow: 0 2px 0 var(--x-ink);
+  text-shadow: 0 1px 0 var(--x-red-d); }
+#main h2 .count { color: #ffe9a8; }
+.tile.owned .nm { color: #1f9e45; }
+.tile.off { opacity: .5; }
+.hint, .waiting { color: #24425a; }
+
+/* ---- moves: type-coloured slabs with a shine stripe ---- */
+.moves { gap: 8px; }
+.move {
+  display: grid; grid-template-columns: 38px 1fr auto; grid-template-rows: auto auto; column-gap: 8px; align-items: center;
+  min-height: 56px; padding: 6px 12px 6px 7px; border-radius: 16px; overflow: hidden;
+  background-color: var(--t); border: 2.5px solid var(--x-ink); color: #fff;
+  background-image: linear-gradient(180deg, rgba(255,255,255,.45) 0%, rgba(255,255,255,.12) 48%, rgba(0,0,0,.06) 52%, rgba(0,0,0,.14) 100%);
+  box-shadow: 0 4px 0 var(--x-ink);
+}
+.move::after { content: ""; position: absolute; top: 0; bottom: 0; left: -40%; width: 30%; transform: skewX(-20deg);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent); animation: x-shine 4.5s ease-in-out infinite; pointer-events: none; }
+.move:nth-child(2)::after { animation-delay: .35s; } .move:nth-child(3)::after { animation-delay: .7s; } .move:nth-child(4)::after { animation-delay: 1.05s; }
+@keyframes x-shine { 0%, 70% { left: -40%; } 100% { left: 130%; } }
+.move .ticon { display: block; grid-row: 1 / 3; width: 38px; height: 38px; padding: 7px; border-radius: 50%; background: var(--t);
+  border: 2.5px solid var(--x-ink); box-shadow: inset 0 0 0 2px rgba(255,255,255,.85); }
+.move .mn { grid-column: 2; font-size: 17px; line-height: 19px; align-self: end; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.move .meff { display: block; grid-column: 2; font-size: 12px; font-weight: 800; align-self: start; color: #fff; text-shadow: 0 1px 0 rgba(0,0,0,.5); }
+.move .ppbig { display: block; grid-column: 3; grid-row: 1 / 3; font-size: 13px; font-weight: 800; color: #fff; }
+.move .ppbig b { font-size: 21px; }
+.move .ml, .move .eff { display: none; }
+.move.e-super .meff { color: #fff6a8; }
+.move.e-weak .meff, .move.e-none .meff { color: #ffe0e0; }
+.move.e-none { filter: saturate(.5); }
+.move.nopp { filter: grayscale(.9) brightness(.85); }
+
+/* ---- sheets & controls ---- */
+#sheet { background: var(--x-paper); color: var(--x-ink); border-top: 4px solid var(--x-red); box-shadow: 0 -4px 0 var(--x-ink); }
+#sheet h2 { color: #fff; }
+.prose { color: var(--x-ink); }
+.seg { background: var(--x-paper-2); border: 2px solid var(--x-ink); }
+.seg button { color: var(--muted); }
+.seg button[aria-current="true"] { background: var(--x-yellow); color: var(--x-ink); box-shadow: 0 2px 0 var(--x-ink); }
+.skintile { border: 2px solid #c4dbe8; }
+.skintile[aria-pressed="true"] { border-color: var(--x-red); }
+.pockets button[aria-current="true"] { background: var(--x-red); color: #fff; }
+.savebtn, .actions button.primary { background: var(--x-red); color: #fff; border: 2.5px solid var(--x-ink); box-shadow: 0 3px 0 var(--x-ink); }
+.toast { background: var(--x-char); color: #fff; border: 2px solid var(--x-ink); box-shadow: 0 4px 0 var(--x-ink); }
+.qball { border: 2px solid var(--x-ink); background: #fff; box-shadow: 0 2px 0 var(--x-ink); }
+#tabs.battle button[aria-current="true"] { outline: 0; }
+.chip.choosing { background: var(--x-red); color: #fff; }
+#tabs.battle .b-fight, #tabs.battle .b-fight:active { box-shadow: none; }
