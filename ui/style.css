@@ -367,7 +367,9 @@ body.battle-busy .moves .move, body.battle-busy #tabs.battle button { opacity: .
 /* ---------- two-page battle layout (skins that ask for it) ---------- */
 #tabs[hidden] { display: none; }
 /* Back: small blue return button, bottom-left */
-.bback { position: sticky; bottom: 4px; justify-self: start; align-self: end; display: inline-flex; align-items: center; gap: 6px; margin-top: 8px;
+.bback { position: fixed; left: 8px; bottom: 8px; display: inline-flex; align-items: center; gap: 6px; margin: 0;
   padding: 8px 16px 8px 12px; border-radius: 6px 14px 14px 6px; background: linear-gradient(180deg, #6fb4ff, #2f74d8); color: #fff; font-weight: 800; font-size: 15px;
-  border: 2px solid rgba(0,0,0,.45); box-shadow: 0 3px 0 rgba(0,0,0,.35), inset 0 2px 0 rgba(255,255,255,.35); z-index: 2; }
+  border: 2px solid rgba(0,0,0,.45); box-shadow: 0 3px 0 rgba(0,0,0,.35), inset 0 2px 0 rgba(255,255,255,.35); z-index: 20; }
+/* always pinned to the bottom-left corner; leave room so it never covers the last row */
+body.bpages[data-view="b-fight"] #main, body.bpages[data-view="b-bag"] #main, body.bpages[data-view="b-mon"] #main { padding-bottom: 64px; }
 .bback svg { width: 22px; height: 22px; }

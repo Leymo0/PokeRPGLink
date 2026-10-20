@@ -17,8 +17,9 @@
 
 /* outlined bold lettering, like the handheld's menus */
 .x-out, #tabs.battle button, .move .mn, .move .ppbig, #bar .place {
-  text-shadow: -1.5px -1.5px 0 var(--x-ink), 1.5px -1.5px 0 var(--x-ink), -1.5px 1.5px 0 var(--x-ink), 1.5px 1.5px 0 var(--x-ink), 0 2px 0 var(--x-ink);
+  -webkit-text-stroke: 4px var(--x-ink); paint-order: stroke fill; text-shadow: 0 2px 0 var(--x-ink);
 }
+#tabs.battle .b-fight { -webkit-text-stroke: 7px var(--x-ink); text-shadow: 0 3px 0 var(--x-ink), 0 0 12px rgba(255,200,80,.6); font-weight: 900; }
 
 /* ---- the screen: map grid that drifts slowly ---- */
 body {
@@ -28,9 +29,17 @@ body {
     linear-gradient(var(--x-grid) 1.5px, transparent 1.5px),
     linear-gradient(90deg, var(--x-grid) 1.5px, transparent 1.5px);
   background-size: 100% 100%, 26px 26px, 26px 26px;
-  animation: x-drift 30s linear infinite;
+  background-attachment: fixed;
+  animation: x-drift 9s linear infinite;
 }
-@keyframes x-drift { to { background-position: 0 0, 26px 26px, 26px 26px; } }
+/* the grid slides down-left, like a moving digital screen; a faint scanline sheen rides on top */
+@keyframes x-drift { from { background-position: 0 0, 0 0, 0 0; } to { background-position: 0 0, -26px 26px, -26px 26px; } }
+body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background: repeating-linear-gradient(0deg, rgba(255,255,255,.07) 0 1px, transparent 1px 3px),
+    linear-gradient(225deg, transparent 35%, rgba(255,255,255,.16) 50%, transparent 65%) 0 0 / 300% 300%;
+  animation: x-sheen 7s linear infinite; }
+@keyframes x-sheen { from { background-position: 0 0, 100% 0; } to { background-position: 0 0, 0 100%; } }
+#app { position: relative; z-index: 1; }
 body.x-still, body.x-still * { animation: none !important; }
 
 /* ---- top: red shell with a dark slanted name plate ---- */
@@ -76,13 +85,10 @@ body.x-still, body.x-still * { animation: none !important; }
   border: 0; box-shadow: none; position: relative; margin-top: -16px; padding: 18px 0; font-size: 20px;
   background-color: transparent; background-image: none; isolation: isolate;
 }
-#tabs.battle .b-fight::before, #tabs.battle .b-fight::after {
-  content: ""; position: absolute; inset: 0; z-index: -1;
-  clip-path: polygon(50% 0%, 57% 14%, 69% 4%, 70% 20%, 85% 15%, 80% 30%, 97% 32%, 86% 45%, 100% 55%, 85% 63%, 94% 78%, 77% 77%, 76% 95%, 63% 86%, 52% 100%, 43% 86%, 30% 96%, 28% 79%, 10% 82%, 16% 66%, 0% 56%, 14% 45%, 4% 30%, 21% 30%, 17% 12%, 32% 19%, 37% 2%, 45% 14%);
-}
-#tabs.battle .b-fight::before { background: var(--x-ink); transform: scale(1.06); }
 #tabs.battle .b-fight::after {
-  background: radial-gradient(rgba(255,230,120,.5) 1.2px, transparent 1.7px) 0 0 / 6px 6px, radial-gradient(circle at 50% 45%, #ff8a5a, var(--x-red) 55%, var(--x-red-d));
+  content: ""; position: absolute; inset: -6px -10px; z-index: -1;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 110'%3E%3Cdefs%3E%3CradialGradient id='g' cx='50%25' cy='42%25' r='60%25'%3E%3Cstop offset='0' stop-color='%23ff8a4a'/%3E%3Cstop offset='.55' stop-color='%23e8343a'/%3E%3Cstop offset='1' stop-color='%23a8161f'/%3E%3C/radialGradient%3E%3Cpattern id='d' width='5' height='5' patternUnits='userSpaceOnUse'%3E%3Ccircle cx='2.5' cy='2.5' r='1' fill='%23ffd27a' fill-opacity='.35'/%3E%3C/pattern%3E%3C/defs%3E%3Cpolygon points='118,10 135,24 161,12 159,26 191,20 177,36 223,36 191,47 233,56 194,62 211,74 180,74 195,85 166,84 165,98 133,87 119,99 110,87 77,98 78,84 47,88 53,73 21,74 41,62 16,54 50,47 17,37 55,38 38,23 79,26 84,12 107,22' fill='%2324242c' stroke='%2324242c' stroke-width='9' stroke-linejoin='round'/%3E%3Cpolygon points='118,10 135,24 161,12 159,26 191,20 177,36 223,36 191,47 233,56 194,62 211,74 180,74 195,85 166,84 165,98 133,87 119,99 110,87 77,98 78,84 47,88 53,73 21,74 41,62 16,54 50,47 17,37 55,38 38,23 79,26 84,12 107,22' fill='url(%23g)' stroke='%23ffb347' stroke-width='3' stroke-linejoin='round'/%3E%3Cpolygon points='118,10 135,24 161,12 159,26 191,20 177,36 223,36 191,47 233,56 194,62 211,74 180,74 195,85 166,84 165,98 133,87 119,99 110,87 77,98 78,84 47,88 53,73 21,74 41,62 16,54 50,47 17,37 55,38 38,23 79,26 84,12 107,22' fill='url(%23d)'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  filter: drop-shadow(0 0 6px rgba(255,150,50,.75)) drop-shadow(0 4px 0 rgba(36,36,44,.35));
   animation: x-burst 2.4s ease-in-out infinite;
 }
 @keyframes x-burst { 0%, 100% { transform: scale(.97) rotate(-2deg); } 50% { transform: scale(1.03) rotate(2deg); } }
@@ -90,7 +96,6 @@ body.x-still, body.x-still * { animation: none !important; }
 #tabs.battle .b-mon { background-color: var(--x-green); border-radius: 999px; }
 #tabs.battle .b-run { background-color: var(--x-blue); border-radius: 8px 22px 14px 14px; }
 #tabs.battle button[aria-current="true"]:not(.b-fight) { box-shadow: inset 0 -5px 0 rgba(0,0,0,.22), 0 3px 0 var(--x-ink), 0 0 0 3px #fff; }
-#tabs.battle .b-fight[aria-current="true"]::before { background: #fff; transform: scale(1.1); }
 
 /* ---- panels: white, thick outline, red title tab ---- */
 .fighter, .mini, .tile, .row-btn, .tgt, .logline, .savecard {
@@ -173,7 +178,7 @@ body[data-view="b-menu"] #tabs.battle {
   padding: 18px 12px 12px; gap: 12px 10px;
   background: radial-gradient(rgba(255,255,255,.22) 1.4px, transparent 1.8px) 0 0 / 9px 9px, linear-gradient(180deg, #e9eef4, #c9d3de);
 }
-body[data-view="b-menu"] #tabs.battle .b-fight { grid-area: f; margin: 0 auto; width: min(92%, 380px); height: 124px; font-size: 34px; letter-spacing: .06em; }
+body[data-view="b-menu"] #tabs.battle .b-fight { grid-area: f; margin: 6px auto 4px; width: min(80%, 280px); height: 122px; font-size: 36px; letter-spacing: .04em; padding: 0; display: grid; place-items: center; align-content: center; line-height: 1; }
 body[data-view="b-menu"] #tabs.battle .b-bag { grid-area: b; }
 body[data-view="b-menu"] #tabs.battle .b-run { grid-area: r; }
 body[data-view="b-menu"] #tabs.battle .b-mon { grid-area: m; }

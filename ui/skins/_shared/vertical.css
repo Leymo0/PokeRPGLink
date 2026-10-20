@@ -29,7 +29,6 @@ body[data-view="b-fight"] #main, body[data-view="b-menu"] #main {
   overflow-y: auto;
 }
 body[data-view="b-fight"] #main > *, body[data-view="b-menu"] #main > * { grid-column: 1; min-width: 0; }
-body[data-view="b-fight"] #main > .bback { grid-row: -2 / -1; position: static; }
 body[data-view="b-fight"] #main > .waiting, body[data-view="b-menu"] #main > .waiting { grid-row: -3 / -2; align-self: end; text-align: left; }
 /* first page: Fight / Bag / Pokémon / Run — the rail gets wide, four tall buttons */
 body[data-view="b-menu"] #tabs.battle { width: 50%; gap: 10px; padding: 10px; }
