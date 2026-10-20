@@ -11,3 +11,7 @@
 #main, #main h2 { color: var(--d-card-text); }
 .fighter, .mini, .tile, .row-btn, .tgt, .logline, .savecard, .bstrip button { box-shadow: 0 2px 0 #cfdaee; }
 #bar .period { background: #e7eefb; color: var(--d-card-text); }
+
+/* Back: white card pill, blue icon */
+.bback { background: var(--d-card); color: var(--d-card-text); border: 0; box-shadow: 0 2px 0 #cfdaee, 0 0 0 1px #dbe4f3; }
+.bback svg { color: var(--d-own); }

@@ -65,3 +65,7 @@ body { background:
 /* segmented controls (settings tabs, options): neon outline instead of Daisy's white pill */
 .seg button[aria-current="true"] { background: transparent !important; color: var(--p-neon) !important; box-shadow: inset 0 0 0 2px var(--p-neon), 0 0 10px rgba(199,125,255,.45) !important; }
 .seg button { color: var(--d-card-muted) !important; }
+
+/* Back: neon outline on glass */
+.bback { border-radius: 14px; background: rgba(20, 8, 40, .85); color: var(--p-cyan); border: 2px solid var(--p-cyan);
+  box-shadow: 0 0 14px var(--p-cyan), inset 0 0 12px rgba(255,255,255,.04); text-shadow: 0 0 8px var(--p-cyan); }
