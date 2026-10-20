@@ -1,0 +1,12 @@
+{
+ "name": "Vertical OLED",
+ "author": "Leymo",
+ "version": "1.0",
+ "description": "The Daisy OLED look with moves stacked down the right side.",
+ "typeIcons": [
+  "Dark icons",
+  "dark",
+  "black"
+ ],
+ "tag": "Vertical"
+}

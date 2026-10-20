@@ -1,0 +1,20 @@
+/* Vertical layouts: in battle the moves stand in one column on the right,
+   the Pokémon, weather and log stay on the left. Imported after a base skin. */
+body[data-view="b-fight"] #main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 10px;
+  align-content: start;
+  grid-auto-flow: row dense;
+}
+body[data-view="b-fight"] #main > * { grid-column: 1; min-width: 0; }
+body[data-view="b-fight"] #main > .moves {
+  grid-column: 2; grid-row: 1 / span 8; align-self: start;
+  grid-template-columns: 1fr; margin-top: 0;
+}
+body[data-view="b-fight"] #main > .specials { grid-column: 2; }
+body[data-view="b-fight"] #main > .waiting { grid-column: 1 / -1; }
+/* chips and log wrap to the narrower column */
+body[data-view="b-fight"] #main > .bstrip { flex-wrap: wrap; overflow: visible; }
+/* doubles: the 2×2 field becomes a single column of compact cards */
+body[data-view="b-fight"] .field2 { grid-template-columns: 1fr 1fr; }

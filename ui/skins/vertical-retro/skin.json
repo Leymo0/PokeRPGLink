@@ -1,0 +1,10 @@
+{
+ "name": "Vertical Retro",
+ "author": "Leymo",
+ "version": "1.0",
+ "description": "The Super Retro look with moves stacked down the right side.",
+ "typeIcons": [
+  "White icons"
+ ],
+ "tag": "Vertical"
+}

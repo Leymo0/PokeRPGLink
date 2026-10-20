@@ -1,0 +1,12 @@
+{
+ "name": "Vertical White",
+ "author": "Leymo",
+ "version": "1.0",
+ "description": "The Daisy White look with moves stacked down the right side.",
+ "typeIcons": [
+  "White icons",
+  "light",
+  "white"
+ ],
+ "tag": "Vertical"
+}
