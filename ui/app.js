@@ -271,6 +271,16 @@ window.PokeRPGLink = {
   },
 };
 
+// Swatches for the skin picker (a skin can give its own in skin.json: "swatch": [background, card, accent])
+const SKIN_SWATCH = {
+  default: ["#1a1530", "#251e40", "#f3b23c"], "catch-tracker": ["#1a1530", "#251e40", "#5bd08a"], "classic-ds": ["#dfe9f2", "#ffffff", "#f08a24"],
+  daisy: ["#2f6fd6", "#ffffff", "#ffb627"], "daisy-white": ["#e9f0fb", "#ffffff", "#ffb627"], "daisy-oled": ["#000000", "#101018", "#ffb627"],
+  juicy: ["#1a1530", "#251e40", "#ff5fa2"], matcha: ["#e3e8cf", "#f4efdf", "#7d9a55"], "oled-black": ["#000000", "#0e0c18", "#f3b23c"],
+  "retro-purple": ["#10061f", "#2a1650", "#c77dff"], "retro-snes": ["#bdbac6", "#e7e5ec", "#5b4b9e"],
+};
+const SKIN_TAG = { "catch-tracker": "Adds features", juicy: "Effects" };
+let switching = false;
+
 function loadSkin() {
   const sk = listSkins().find((x) => x.id === settings.skin);
   document.body.dataset.skin = sk ? sk.id : "default";
@@ -955,29 +965,41 @@ function renderSheet() {
     h = head("", esc(s.title || "")) + (s.html || "");
   } else if (s.kind === "settings") {
     const skins = listSkins();
+    const tab = ui.setTab || "look";
     h = head("", "Panel settings");
-    h += `<h2>Skin</h2>` + skins.map((k) => `<button class="row-btn skinrow" data-skin="${esc(k.id)}" aria-pressed="${settings.skin === k.id}"><span class="radio"></span><span class="grow"><b>${esc(k.name)}</b><span class="muted"> ${k.author ? "by " + esc(k.author) : ""}${k.builtin ? "" : " · installed"}</span>${k.description ? `<br><span class="muted sm">${esc(k.description)}</span>` : ""}</span></button>`).join("");
-    const gk = gameKey();
-    if (gk) h += `<p class="hint">Skin and type icons are remembered for each game — this one is saved for <b>${esc(gk)}</b>.</p>`;
-    h += `<p class="hint">Add skins by copying a skin folder into <b>PokeRPGLink/skins/</b> on your device storage.</p>`;
-    const packs = typePacks();
-    h += `<h2>Type icons</h2><div class="seg">${[["auto", "Match skin"], ["builtin", "Built-in"], ...packs.map((p) => [p.id, p.name])].map(([v, n]) => `<button data-typepack="${esc(v)}" aria-current="${(settings.typePack || "auto") === v}">${esc(n)}</button>`).join("")}</div>
-      <p class="hint">Icon packs go in <b>PokeRPGLink/typeicons/&lt;pack&gt;/</b> — one PNG per type (FIRE.png, WATER.png…).</p>`;
-    h += `<h2>Size</h2><div class="seg">${[[0.9, "Small"], [1, "Normal"], [1.15, "Large"]].map(([v, n]) => `<button data-scale="${v}" aria-current="${(settings.scale || 1) === v}">${n}</button>`).join("")}</div>`;
-    h += `<h2>Skin animations &amp; sounds</h2><div class="seg"><button data-effects="1" aria-current="${settings.effects !== false}">On</button><button data-effects="0" aria-current="${settings.effects === false}">Off</button></div>`;
-    h += `<h2>Volume</h2><div class="seg">${[[0.4, "Quiet"], [0.7, "Medium"], [1, "Loud"]].map(([v, n]) => `<button data-volume="${v}" aria-current="${(settings.volume ?? 1) === v}">${n}</button>`).join("")}</div>`;
-    h += `<h2>Dim when idle</h2><div class="seg"><button data-dimidle="1" aria-current="${!!settings.dimIdle}">On</button><button data-dimidle="0" aria-current="${!settings.dimIdle}">Off</button></div>
-      <p class="hint">Dims the panel slightly after 15 seconds without a touch, to protect the OLED screen. Still easy to read; any touch brings it back.</p>`;
-    h += `<h2>Vibration</h2><div class="seg"><button data-haptics="1" aria-current="${settings.haptics !== false}">On</button><button data-haptics="0" aria-current="${settings.haptics === false}">Off</button></div>`;
-    if (S && !S._stale) {
-      const di = S.diag || {};
-      let iconMsg = "no Pokémon in your party yet";
-      if ((S.party || []).length) iconMsg = !di.icon ? "the game didn't give an icon (see PokeRPGLink/log.txt in the game folder)" : img(di.icon).startsWith("data:") ? "working" : "can't read " + di.icon;
-      h += `<h2>About</h2><p class="hint">Mod version ${esc(S.v || "?")} · ${esc((S.game && S.game.title) || "")}<br>Pokémon icons: ${esc(iconMsg)}${di.jobs ? ` · drawing ${di.jobs} more in the background` : ""}</p>`;
-    }
-    if (B.openSetup) {
-      const { rts } = launchInfo();
-      h += `<h2>Game &amp; setup</h2><div class="actions">${rts.length ? `<button data-act="play" data-pkg="${esc(rts[0].id)}">Open ${esc(rts[0].label)} on top</button>` : ""}<button data-act="setup">PokeRPGLink setup</button></div>`;
+    h += `<div class="seg settabs">${[["look", "Look"], ["feel", "Sound & feel"], ["about", "About"]].map(([k, n]) => `<button data-settab="${k}" aria-current="${tab === k}">${n}</button>`).join("")}</div>`;
+    const seg = (label, attr, opts, cur) => `<div class="setrow"><span>${label}</span><div class="seg">${opts.map(([v, n]) => `<button data-${attr}="${esc(v)}" aria-current="${cur === v}">${esc(n)}</button>`).join("")}</div></div>`;
+    if (tab === "look") {
+      const cur = skins.find((k) => k.id === settings.skin) || skins[0] || {};
+      h += `<div class="skingrid">` + skins.map((k) => {
+        const sw = k.swatch || SKIN_SWATCH[k.id] || SKIN_SWATCH.default;
+        return `<button class="skintile" data-skin="${esc(k.id)}" aria-pressed="${settings.skin === k.id || (!settings.skin && k.id === "default")}" ${switching ? "disabled" : ""}>
+          <span class="sw" style="background:${esc(sw[0])}"><i style="background:${esc(sw[1])}"></i><i style="background:${esc(sw[2])}"></i></span>
+          <b>${esc(k.name)}</b>${(k.tag || SKIN_TAG[k.id]) ? `<span class="stag">${esc(k.tag || SKIN_TAG[k.id])}</span>` : !k.builtin ? `<span class="stag">Installed</span>` : ""}</button>`;
+      }).join("") + `</div>`;
+      h += `<p class="hint skindesc">${switching ? "Switching skin…" : `<b>${esc(cur.name || "")}</b>${cur.author ? " · by " + esc(cur.author) : ""}${cur.description ? " — " + esc(cur.description) : ""}`}</p>`;
+      const packs = typePacks();
+      h += seg("Type icons", "typepack", [["auto", "Match skin"], ["builtin", "Built-in"], ...packs.map((p) => [p.id, p.name])], settings.typePack || "auto");
+      h += seg("Size", "scale", [[0.9, "Small"], [1, "Normal"], [1.15, "Large"]], settings.scale || 1);
+      const gk = gameKey();
+      h += `<p class="hint">${gk ? `Skin and type icons are saved for <b>${esc(gk)}</b>. ` : ""}More skins: copy a skin folder into <b>PokeRPGLink/skins/</b>; icon packs go in <b>PokeRPGLink/typeicons/</b>.</p>`;
+    } else if (tab === "feel") {
+      h += seg("Animations & sounds", "effects", [["1", "On"], ["0", "Off"]], settings.effects !== false ? "1" : "0");
+      h += seg("Volume", "volume", [[0.4, "Quiet"], [0.7, "Medium"], [1, "Loud"]], settings.volume ?? 1);
+      h += seg("Vibration", "haptics", [["1", "On"], ["0", "Off"]], settings.haptics !== false ? "1" : "0");
+      h += seg("Dim when idle", "dimidle", [["1", "On"], ["0", "Off"]], settings.dimIdle ? "1" : "0");
+      h += `<p class="hint">Dim when idle lowers the brightness a little after 15 seconds without a touch, to protect the OLED screen. Any touch brings it back.</p>`;
+    } else {
+      if (S && !S._stale) {
+        const di = S.diag || {};
+        let iconMsg = "no Pokémon in your party yet";
+        if ((S.party || []).length) iconMsg = !di.icon ? "the game didn't give an icon (see PokeRPGLink/log.txt in the game folder)" : img(di.icon).startsWith("data:") ? "working" : "can't read " + di.icon;
+        h += `<p class="hint">Mod version ${esc(S.v || "?")} · ${esc((S.game && S.game.title) || "")}<br>Pokémon icons: ${esc(iconMsg)}${di.jobs ? ` · drawing ${di.jobs} more in the background` : ""}</p>`;
+      }
+      if (B.openSetup) {
+        const { rts } = launchInfo();
+        h += `<div class="actions">${rts.length ? `<button data-act="play" data-pkg="${esc(rts[0].id)}">Open ${esc(rts[0].label)} on top</button>` : ""}<button data-act="setup">PokeRPGLink setup</button></div>`;
+      }
       h += `<p class="hint byline">PokeRPGLink · by Leymo</p>`;
     }
   } else if (s.kind === "confirm") {
@@ -1028,7 +1050,16 @@ document.addEventListener("click", (ev) => {
   if (d.tab) { ui.tab = d.tab; closeSheet(); return render(true); }
   if (d.plugbar) { const b = PLUG.barButtons.find((x) => x.id === d.plugbar); try { b && b.onClick && b.onClick(); } catch (e) {} return; }
   if (d.pluginClick && PLUG.clicks && PLUG.clicks[d.pluginClick]) { try { PLUG.clicks[d.pluginClick](t, S); } catch (e) {} return; }
-  if (d.skin) { if (settings.skin !== d.skin) { settings.skin = d.skin; rememberLook(); saveSettings(); location.reload(); } return; }
+  if (d.settab) { ui.setTab = d.settab; return renderSheet(); }
+  // Changing skin reloads the panel. Take one tap only, then reopen these settings afterwards.
+  if (d.skin) {
+    if (switching || settings.skin === d.skin) return;
+    switching = true;
+    settings.skin = d.skin; settings.reopenSettings = true; rememberLook(); saveSettings();
+    renderSheet();
+    setTimeout(() => location.reload(), 120);
+    return;
+  }
   if (d.scale) { settings.scale = +d.scale; saveSettings(); applySettings(); return renderSheet(); }
   if (d.dimidle) { settings.dimIdle = d.dimidle === "1"; saveSettings(); wake(); return renderSheet(); }
   if (d.typepack) { settings.typePack = d.typepack; rememberLook(); saveSettings(); render(true); return renderSheet(); }
@@ -1127,6 +1158,8 @@ wake();
 loadSkin();
 { const h = location.hash.slice(1).split("&")[0].split("-"); if (["area", "party", "bag", "map", "dex", "save"].includes(h[1] || h[0])) ui.tab = h[1] || h[0]; if ((h[0] === "battle" || h[0] === "double") && ["mon", "bag"].includes(h[1])) ui.btab = h[1]; }
 render(true);
+// back from a skin change: show the settings again so you can keep browsing skins
+if (settings.reopenSettings) { delete settings.reopenSettings; saveSettings(); ui.setTab = "look"; openSheet({ kind: "settings" }); }
 send("ping");
 setInterval(poll, 150);
 poll();
