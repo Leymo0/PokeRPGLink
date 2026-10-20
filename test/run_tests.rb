@@ -371,6 +371,19 @@ hits = 0
 12.times { Input.update; hits += 1 if Input.trigger?(Input::C) }
 check "virtual A press registers once", hits == 1
 
+# Story log: message boxes are copied to story.json, the game still shows them unchanged
+r = Kernel.pbMessageDisplay(nil, "\\PN found a \\c[1]Potion\\c[0]!\\wtnp[10]")
+Kernel.pbMessageDisplay(nil, "Prof. Oak: Welcome to the world of Pokémon!")
+Kernel.pbMessageDisplay(nil, "Prof. Oak: Welcome to the world of Pokémon!")   # repeat isn't logged twice
+frames(40)
+story = JSON.parse(File.read(File.join(PokeRPGLink.dir, "story.json")))
+check "message box still shown, untouched", r == :shown && SHOWN.include?("\\PN found a \\c[1]Potion\\c[0]!\\wtnp[10]")
+check "story line cleaned with player name", story["lines"].any? { |l| l["text"] == "#{$Trainer.name} found a Potion!" }
+check "speaker split out", story["lines"].count { |l| l["who"] == "Prof. Oak" && l["text"].start_with?("Welcome") } == 1
+check "state carries storyId", state["storyId"] == story["last"]
+PokeRPGLink.instance_variable_set(:@story, nil); PokeRPGLink.story
+check "story survives a restart", PokeRPGLink.story.length == story["lines"].length && PokeRPGLink.story.last["who"] == "Prof. Oak"
+
 File.write(File.expand_path("sample_map_state.json", __dir__), File.read(File.join(PokeRPGLink.dir, "state.json")))
 puts "\nlog.txt:\n" + (File.read(File.join(PokeRPGLink.dir, "log.txt")) rescue "")
 puts($fails.zero? ? "\nALL PASSED" : "\n#{$fails} FAILED")

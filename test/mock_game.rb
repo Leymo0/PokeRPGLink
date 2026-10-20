@@ -176,7 +176,10 @@ SAVED = []
 def pbSave; SAVED << true; true; end
 def pbSEPlay(*a); end
 FLOWN = []
+SHOWN = []
 module Kernel
+  # Rebornverse-style message box: the panel must only read the text, never change it
+  def self.pbMessageDisplay(win, msg, letterbyletter = true, cmdproc = nil); SHOWN << msg; :shown; end
   def self.pbCanUseHiddenMove?(p, m); true; end
   def self.pbUseHiddenMove(p, m); FLOWN << [$PokemonTemp.flydata, p.name]; true; end
 end

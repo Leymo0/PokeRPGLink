@@ -97,7 +97,7 @@
     pick: m.slot === 2 || m.slot === 3 || m.slot === 1 ? [1, 2, 3] : null,
     vs: [{ index: 1, foe: true, mult: m.cat === "status" ? null : m.type === "STEEL" ? 0 : 1 }, { index: 3, foe: true, mult: m.cat === "status" ? null : m.type === "ELECTRIC" ? 2 : 1 }, { index: 2, foe: false, mult: m.cat === "status" ? null : m.type === "ELECTRIC" ? 1 : 1 }] }));
   dbl.battle.moves[0].pick = null; dbl.battle.moves[0].target = "AllNonUsers";
-  battleState.battle.log = [{ id: 1, text: "Leader Kaya sent out Grimer!" }, { id: 2, text: "The field is hyper-charged!" }, { id: 3, text: "Grimer's Stench made the air foul!" }];
+  battleState.battle.log = [{ id: 1, text: "Leader Kaya sent out Grimer!" }, { id: 2, text: "The field is hyper-charged!" }, { id: 3, text: "Volt used Thunderbolt!" }, { id: 4, text: "A critical hit!" }, { id: 5, text: "It's super effective!" }, { id: 6, text: "Grimer fell to 50% HP." }, { id: 7, text: "Grimer's Stench made the air foul!" }];
   battleState.battle.battlers[0].otherEffects = ["MagicCoat", "Rage"];
   mapState.watch = [{ label: "Karma", value: 12 }, { label: "Rift Energy", value: 3 }, { label: "Got the Bicycle", value: true }];
   const shadow = JSON.parse(JSON.stringify(battleState));
@@ -106,11 +106,19 @@
   Object.assign(shadow.battle.battlers[0], { name: "Grimer", shadow: { stage: 4, max: 5 }, boss: { shields: 2 } });
   shadow.battle.moves[1].fieldType = "Electric";
   shadow.battle.field.info.typeAdds = ["Surf, Muddy Water also Electric"];
+  const storyFile = { v: "1.0.11", last: 6, lines: [
+    { id: 1, who: "", text: "Welcome to the city of Goldenwood!" },
+    { id: 2, who: "Melia", text: "Hey! You made it out of the forest in one piece." },
+    { id: 3, who: "Melia", text: "The gym leader here is said to use Poison-type Pokémon." },
+    { id: 4, who: "", text: "Ash found a Potion!" },
+    { id: 5, who: "Old Man", text: "Back in my day, the Route 1 grass was full of Pikachu." },
+    { id: 6, who: "", text: "Ash put the Potion in the Items Pocket." }] };
+  mapState.storyId = 6;
   const scenes = { map: mapState, battle: battleState, double: dbl, shadow };
   let served = null;
   window.PokeRPGBridge = {
     readState() { const h0 = location.hash.slice(1).split(/[-&]/)[0]; if (h0 === "offline") return ""; const k = scenes[h0] ? h0 : "map"; if (served === k) return ""; served = k; return JSON.stringify(scenes[k]); },
-    readFile(n) { return n === "dex.json" ? JSON.stringify(dex) : n === "map.json" ? JSON.stringify(townmap) : ""; },
+    readFile(n) { return n === "dex.json" ? JSON.stringify(dex) : n === "map.json" ? JSON.stringify(townmap) : n === "story.json" ? JSON.stringify(storyFile) : ""; },
     fileTime() { return Date.now() - 500; },
     send(l) { console.log("send:", l); },
     root() { return ""; },

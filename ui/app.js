@@ -29,6 +29,7 @@ const I = {
   gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" stroke-linecap="round"/></svg>',
   play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.6-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>',
   hide: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg>',
+  book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M9 8h7M9 11.5h5"/></svg>',
   back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>',
   close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   up: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 6l7 9H5z"/></svg>',
@@ -522,11 +523,16 @@ function renderTabs(inBattle) {
 
 /* ---------- Area: wild Pokémon here ---------- */
 const KIND = { grass: "Grass", cave: "Cave", surf: "Surfing", rocksmash: "Rock Smash", oldrod: "Old Rod", goodrod: "Good Rod", superrod: "Super Rod", headbutt: "Headbutt", bugcontest: "Bug Contest" };
+function storyRow() {
+  const st = S.storyId != null ? loadStory() : null;
+  const l = st && st.lines && st.lines[st.lines.length - 1];
+  return `<button class="logline storyrow" data-act="story">${I.book || ""}<span>${l ? (l.who ? `<b>${esc(l.who)}:</b> ` : "") + esc(l.text) : "Story log — what people said, signs, items"}</span><span class="muted">Story</span></button>`;
+}
 function renderArea() {
   const m = S.map;
-  if (!m) return `<div class="empty">No map data yet.</div>`;
+  if (!m) return storyRow() + `<div class="empty">No map data yet.</div>`;
   const groups = m.encounters || [];
-  if (!groups.length) return `<div class="empty">No wild Pokémon live here.<br>Head into grass, caves or water to see who's around.</div>`;
+  if (!groups.length) return storyRow() + `<div class="empty">No wild Pokémon live here.<br>Head into grass, caves or water to see who's around.</div>`;
   // merge time-of-day variants of the same method into one grid
   const byKind = {};
   for (const g of groups) {
@@ -541,7 +547,7 @@ function renderArea() {
   }
   const now = m.period === "evening" ? "night" : m.period;
   let caughtAll = 0, total = 0;
-  let h = `<div class="legend"><span>${I.ball} caught</span><span>${I.dawn} morning</span><span>${I.sun} day</span><span>${I.moon} night</span><span class="muted">no icon = any time</span></div>`;
+  let h = storyRow() + `<div class="legend"><span>${I.ball} caught</span><span>${I.dawn} morning</span><span>${I.sun} day</span><span>${I.moon} night</span><span class="muted">no icon = any time</span></div>`;
   for (const k of Object.values(byKind)) {
     const mons = Object.values(k.mons).sort((a, b) => b.chance - a.chance);
     const owned = mons.filter((x) => x.owned).length;
@@ -663,7 +669,8 @@ function renderBattle() {
   const ballBtn = !b.trainer && !b.noBag && qb ? `<button class="qball" data-ball="${esc(qb.id)}" data-hold="balls" aria-label="Throw ${esc(qb.name)}">
       ${qb.icon ? `<img src="${img(qb.icon)}" alt="" onerror="this.outerHTML=I.ball">` : I.ball}<span class="qn num">${qb.qty}</span></button>` : "";
   const last = (b.log || []).slice(-1)[0];
-  const logBtn = last ? `<button class="logline" data-act="log"><span>${esc(last.text)}</span><span class="muted">Log</span></button>` : `<span class="logline spacer"></span>`;
+  // the last few lines the battle printed, with names, moves and key phrases coloured
+  const logBtn = last ? `<button class="logbox" data-act="log" aria-label="Battle log">${(b.log || []).slice(-3).map((l) => `<span class="ll">${hlLog(l.text, b)}</span>`).join("")}</button>` : `<span class="logline spacer"></span>`;
   if (last || ballBtn) h += `<div class="logrow">${logBtn}${ballBtn}</div>`;
   const back = battlePages ? `<button class="bback" data-act="bback" aria-label="Back to Fight / Bag / Pokémon / Run">${I.back}<span>Back</span></button>` : "";
   if (battlePages && ui.bmenu) {
@@ -777,6 +784,40 @@ function afterMap() {
     box.dataset.centered = 1;
   };
   if (im && im.complete) center(); else if (im) im.onload = center;
+}
+
+/* ---------- logs ---------- */
+// Colour the interesting bits of a log line. Text is escaped first; only known
+// words get wrapped, so odd text from a game can never break the panel.
+const LOG_PHRASES = [
+  [/critical hit/gi, "lc"], [/super effective/gi, "lg"], [/not very effective/gi, "lw"],
+  [/doesn't affect|had no effect|missed|avoided the attack|failed/gi, "lx"], [/fainted|fell to [0-9]+% HP/gi, "lr"],
+];
+function hlLog(text, b) {
+  let t = esc(text || "");
+  const marks = [];
+  const mark = (re, cls) => { t = t.replace(re, (m) => { marks.push(`<b class="${cls}">${m}</b>`); return `\u0000${marks.length - 1}\u0000`; }); };
+  const word = (n) => new RegExp(`(?<![\\w])${esc(n).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w])`, "g");
+  try {
+    t = t.replace(/used ([^!.]{1,30})!/g, (m, mv) => { marks.push(`<b class="lm">${mv}</b>`); return `used \u0000${marks.length - 1}\u0000!`; });
+    for (const [re, cls] of LOG_PHRASES) mark(re, cls);
+    const names = [];
+    if (b) for (const x of b.battlers || []) if (x.name) names.push([x.name, x.own ? "lo" : "lf"]);
+    if (S && S.player && S.player.name) names.push([S.player.name, "lo"]);
+    names.sort((a, c) => c[0].length - a[0].length);
+    for (const [n, cls] of names) if (n.length > 1) mark(word(n), cls);
+  } catch (e) { return esc(text || ""); }
+  return t.replace(/\u0000(\d+)\u0000/g, (m, i) => marks[+i] || "");
+}
+
+let story = null, storyTime = 0, storySeen = -1;
+function loadStory() {
+  const mt = B.fileTime ? B.fileTime("story.json") : 1;
+  if (!story || mt !== storyTime || (S && S.storyId != null && S.storyId !== storySeen)) {
+    const t = B.readFile("story.json");
+    if (t) { try { story = JSON.parse(t); storyTime = mt; storySeen = story.last; } catch (e) {} }
+  }
+  return story;
 }
 
 /* ---------- Pokédex ---------- */
@@ -987,8 +1028,14 @@ function renderSheet() {
   } else if (s.kind === "log") {
     const b = S.battle;
     if (!b) return closeSheet();
-    h = head("", "Battle log") + `<ol class="blog">${(b.log || []).slice().reverse().map((l) => `<li>${esc(l.text)}</li>`).join("")}</ol>
+    h = head("", "Battle log") + `<ol class="blog">${(b.log || []).slice().reverse().map((l) => `<li>${hlLog(l.text, b)}</li>`).join("")}</ol>
       <p class="hint">Everything the battle has said this fight, newest first — including mechanics special to this game.</p>`;
+  } else if (s.kind === "story") {
+    const st = loadStory();
+    const lines = (st && st.lines) || [];
+    h = head("", "Story log");
+    h += lines.length ? `<ol class="story">${lines.map((l) => `<li>${l.who ? `<b class="who">${esc(l.who)}</b>` : ""}<span>${hlLog(l.text, null)}</span></li>`).join("")}</ol>`
+      : `<p class="hint">Nothing yet — every message box you read in the game (talking, signs, items) shows up here so you can scroll back.</p>`;
   } else if (s.kind === "plugin") {
     h = head("", esc(s.title || "")) + (s.html || "");
   } else if (s.kind === "settings") {
@@ -1032,6 +1079,17 @@ function renderSheet() {
     }
   } else if (s.kind === "confirm") {
     h = head("", esc(s.title)) + (s.text ? `<p class="prose">${esc(s.text)}</p>` : "") + `<div class="actions"><button data-act="close">Cancel</button><button class="primary" data-confirm="1">${esc(s.ok)}</button></div>`;
+  }
+  if (s.kind === "story" || s.kind === "log") {
+    // live logs: don't rebuild (and lose your scroll spot) unless something new arrived;
+    // the story keeps following the newest line while you're at the bottom
+    if (s._h === h && !wrap.hidden) return;
+    const follow = s.kind === "story" && (!s._h || el.scrollHeight - el.scrollTop - el.clientHeight < 40);
+    s._h = h;
+    el.innerHTML = h;
+    wrap.hidden = false;
+    if (follow) el.scrollTop = el.scrollHeight;
+    return;
   }
   el.innerHTML = h;
   wrap.hidden = false;
@@ -1156,6 +1214,7 @@ document.addEventListener("click", (ev) => {
     case "play": try { B.play(d.pkg || ""); } catch (e) {} return;
     case "setup": try { B.openSetup(); } catch (e) {} return;
     case "log": return openSheet({ kind: "log" });
+    case "story": return openSheet({ kind: "story" });
     case "hide": try { B.setCollapsed(true); } catch (e) {} return;
     case "pad": { const p = $("#pad"); p.hidden = !p.hidden; if (!p.hidden) renderPad(); return; }
     case "special": ui.special = !ui.special; return render(true);

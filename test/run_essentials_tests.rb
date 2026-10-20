@@ -255,6 +255,8 @@ class Battle
   def pbThrowPokeBall(idx, ball, rate = nil, show = false); $thrown = ball; end
 end
 
+SHOWN_V21 = []
+def pbMessageDisplay(msgwindow, message, letterbyletter = true, commandProc = nil); SHOWN_V21 << message; :shown; end
 load File.expand_path("../mod/PokeRPGLink.rb", __dir__)
 
 $fails = 0
@@ -359,5 +361,9 @@ sc.pbEndBattle(0)
 frames(10)
 check "back to map", state["mode"] == "map"
 puts File.read(File.join(PokeRPGLink.dir, "log.txt")) rescue nil
+r = pbMessageDisplay(nil, "Hello there!")
+frames(40)
+st = JSON.parse(File.read(File.join(PokeRPGLink.dir, "story.json"))) rescue {}
+check "v21 story log (plain pbMessageDisplay)", r == :shown && SHOWN_V21 == ["Hello there!"] && (st["lines"] || []).any? { |l| l["text"] == "Hello there!" }
 puts($fails.zero? ? "\nALL PASSED" : "\n#{$fails} FAILED")
 exit($fails.zero? ? 0 : 1)

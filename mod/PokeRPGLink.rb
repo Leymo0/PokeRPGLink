@@ -22,7 +22,7 @@
 
 module PokeRPGLink
   unless const_defined?(:VERSION)
-    VERSION      = "1.0.10"
+    VERSION      = "1.0.11"
     STATE_EVERY  = 8     # frames between state refreshes (~7.5x per second)
     CMD_EVERY    = 3     # frames between command-folder checks
   end
@@ -154,6 +154,7 @@ module PokeRPGLink
       end
     end
     (icon_jobs_tick rescue nil) if @frame % 8 == 0
+    (story_tick rescue nil) if @frame % 10 == 0
     if @frame % 90 == 0   # heartbeat: the panel knows the game is running even when nothing changes
       (write_file("alive.txt", @frame.to_s) rescue nil)
     end
@@ -1632,6 +1633,7 @@ module PokeRPGLink
       return st
     end
     st["mode"] = @battle ? "battle" : "map"
+    st["storyId"] = @story_id if @story
     st["player"] = {
       "name" => trainer.name.to_s,
       "money" => (trainer.money rescue 0).to_i,
@@ -1685,6 +1687,74 @@ module PokeRPGLink
   end
 
   def self.clear_battle_log; @battle_log.clear; end
+
+  #--------------------------------------------------------------------------
+  # Story log: every message box outside battle (dialogue, signs, item pickups),
+  # kept so the panel can scroll back through the story. Read-only: it only
+  # copies the text the game is about to show and never changes what it shows.
+  #--------------------------------------------------------------------------
+  STORY_MAX = 300
+  @story = nil
+  @story_id = 0
+  @story_dirty = false
+  @story_written = 0
+
+  def self.story
+    return @story if @story
+    @story = []
+    begin                                   # keep scrollback across restarts
+      old = File.file?(File.join(dir, "story.json")) ? File.open(File.join(dir, "story.json"), "rb") { |f| f.read } : ""
+      if old =~ /"lines":\[(.*)\]/m
+        old.scan(/\{"id":(\d+),"who":"((?:[^"\\]|\\.)*)","text":"((?:[^"\\]|\\.)*)"\}/).each do |id, who, text|
+          un = lambda { |x| x.gsub(/\\u([0-9a-fA-F]{4})/) { [$1.hex].pack("U") }.gsub(/\\(.)/) { { "n" => " ", "t" => " " }[$1] || $1 } }
+          @story << { "id" => id.to_i, "who" => un.call(who), "text" => un.call(text) }
+        end
+        @story = @story.last(STORY_MAX)
+        @story_id = (@story.last || {})["id"].to_i
+      end
+    rescue
+      @story = []
+    end
+    @story
+  end
+
+  def self.story_text(msg)
+    t = msg.to_s.dup
+    name = (trainer.name.to_s rescue "")
+    t.gsub!(/\\[Pp][Nn]/, name)
+    t.gsub!(/\\[Vv]\[(\d+)\]/) { ($game_variables[$1.to_i] rescue "").to_s }
+    t.gsub!(/\\[Gg](?![a-zA-Z])/, "")
+    t.gsub!(/\\[nN](?![a-zA-Z\[])/, " ")
+    who = ""
+    if t =~ /\\(?:xn|nb|nm)\[([^\]]+)\]/i      # name-box codes some games use
+      who = clean_text($1)
+    end
+    t = clean_text(t)
+    if who.empty? && t =~ /\A([^:!?]{1,24}):\s+(.+)\z/m   # "Name: text"
+      who, t = $1.strip, $2.strip
+    end
+    [who, t]
+  end
+
+  def self.story_message(msg)
+    return if @battle
+    who, t = story_text(msg)
+    return if t.empty?
+    st = story
+    last = st.last
+    return if last && last["text"] == t && last["who"] == who
+    @story_id += 1
+    st << { "id" => @story_id, "who" => who, "text" => t[0, 600] }
+    st.shift while st.length > STORY_MAX
+    @story_dirty = true
+  end
+
+  def self.story_tick
+    return unless @story_dirty && @frame - @story_written > 30
+    @story_dirty = false
+    @story_written = @frame
+    write_file("story.json", json({ "v" => VERSION, "last" => @story_id, "lines" => story }))
+  end
 
   EFFECT_NOISE = /(Count|Counter|Turns?|Fainted|Used|Index|Target|Rate|Initial|Original|Hits|Times|Prev|Damage|Moves|User|Source|Player|Party)\z|\A(Last|Choice|Pickup|Gem|Parental|Move(Next|Index)|TwoTurn|Bide|Counter|MirrorCoat|Destiny|Instruct|Round|Snatch|Quash|Protect(Rate|Negation)|Fling|Tracker|Type3|Illusion|Transform|Participant|Usage|Prankster|Rage$|Skip|Damage|Hyper|Endure|Flinch|Helping|Roost|Powder|Smack)/
 
@@ -3321,6 +3391,29 @@ PokeRPGLink.hook("battle-item-menu") do
       PokeRPGLink.panel_item_menu(self, @battle, index, q, rest, blk)
     end
   end
+end
+
+# Story log. pbMessageDisplay is the one function every message box goes through
+# (as Kernel.pbMessageDisplay in older Essentials / Rebornverse, a plain method in
+# v20+). The wrapper only reads the text; the game's own function always runs.
+PokeRPGLink.hook("story-log") do
+  body = proc do
+    def pbMessageDisplay(*__a, &__b)
+      (PokeRPGLink.story_message(__a[1]) rescue nil)
+      super(*PokeRPGLink.fit(self, :pbMessageDisplay, __a), &__b)
+    end
+  end
+  done = false
+  if Kernel.singleton_methods(false).include?(:pbMessageDisplay)      # def Kernel.pbMessageDisplay
+    PokeRPGLink.patch(Kernel.singleton_class, "story_kernel", &body)
+    done = true
+  end
+  if Object.private_method_defined?(:pbMessageDisplay) || Object.method_defined?(:pbMessageDisplay)
+    PokeRPGLink.patch(Object, "story_object", &body)
+    PokeRPGLink::Patch_story_object.send(:private, :pbMessageDisplay) rescue nil
+    done = true
+  end
+  PokeRPGLink.log("story log: this game has no pbMessageDisplay, so no story log") unless done
 end
 
 PokeRPGLink.hook("battle-messages") do

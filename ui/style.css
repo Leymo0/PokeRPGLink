@@ -373,3 +373,19 @@ body.battle-busy .moves .move, body.battle-busy #tabs.battle button { opacity: .
 /* always pinned to the bottom-left corner; leave room so it never covers the last row */
 body.bpages[data-view="b-fight"] #main, body.bpages[data-view="b-bag"] #main, body.bpages[data-view="b-mon"] #main { padding-bottom: 80px; }
 .bback svg { width: 28px; height: 28px; }
+
+/* ---------- battle log box + story log ---------- */
+.logbox { display: grid; width: 100%; gap: 1px; text-align: left; padding: 5px 10px; margin-bottom: 4px; border-radius: 10px;
+  background: var(--panel); border: 1px solid var(--line); font-family: var(--read); font-size: 13px; line-height: 17px; color: var(--text); }
+.logbox .ll { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: .62; }
+.logbox .ll:last-child { opacity: 1; }
+.logbox .ll:nth-last-child(2) { opacity: .82; }
+.logrow .logbox { flex: 1; min-width: 0; margin-bottom: 0; }
+.lo { color: #6fb4ff; } .lf { color: #ff7a6b; } .lm { color: inherit; font-weight: 800; }
+.lc { color: #f3c23c; } .lg { color: #4fd17e; } .lw { color: #f39a3c; } .lx { opacity: .75; font-weight: 600; } .lr { color: #ff6b6b; }
+.storyrow { margin-bottom: 8px; padding: 6px 10px; }
+.storyrow svg { width: 18px; height: 18px; flex: none; opacity: .8; }
+.storyrow b { font-weight: 800; }
+.story { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-family: var(--read); font-size: 14px; line-height: 19px; }
+.story li { padding: 6px 10px; border-radius: 10px; background: var(--panel-2); }
+.story .who { display: block; font-family: var(--ui); font-size: 12px; color: var(--amber); }
