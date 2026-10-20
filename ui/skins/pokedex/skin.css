@@ -184,8 +184,7 @@ body[data-view="b-menu"] #tabs.battle .b-run { grid-area: r; }
 body[data-view="b-menu"] #tabs.battle .b-mon { grid-area: m; }
 body[data-view="b-menu"] #tabs.battle .b-bag, body[data-view="b-menu"] #tabs.battle .b-run, body[data-view="b-menu"] #tabs.battle .b-mon { font-size: 20px; padding: 16px 0; }
 .bback { background: linear-gradient(180deg, #7cc3ff, var(--x-blue)); border: 2.5px solid var(--x-ink); box-shadow: 0 3px 0 var(--x-ink), inset 0 2px 0 rgba(255,255,255,.4);
-  border-radius: 4px 14px 14px 4px; text-shadow: 0 1px 0 rgba(0,0,0,.4);
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 10px 100%, 0 calc(100% - 10px)); }
+  border-radius: 16px; text-shadow: 0 1px 0 rgba(0,0,0,.4); }
 /* moves page: taller moves, easy to hit */
 body[data-view="b-fight"] .moves .move { min-height: 74px; }
 body[data-view="b-fight"] .moves .move .mn { font-size: 19px; line-height: 22px; }
