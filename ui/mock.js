@@ -126,6 +126,10 @@
         { id: "matcha", name: "Matcha", author: "Leymo", builtin: true, typeIcons: [], css: "skins/matcha/skin.css", js: "skins/matcha/skin.js" },
         { id: "retro-purple", name: "Retro Purple", author: "Leymo", builtin: true, typeIcons: [], css: "skins/retro-purple/skin.css", js: "skins/retro-purple/skin.js" },
         { id: "retro-snes", name: "Super Retro", author: "Leymo", builtin: true, typeIcons: ["White icons"], css: "skins/retro-snes/skin.css", js: "skins/retro-snes/skin.js" },
+        { id: "vertical-oled", name: "Vertical OLED", author: "Leymo", builtin: true, tag: "Vertical", typeIcons: ["Dark icons"], css: "skins/vertical-oled/skin.css", js: "skins/vertical-oled/skin.js" },
+        { id: "vertical-retro", name: "Vertical Retro", author: "Leymo", builtin: true, tag: "Vertical", typeIcons: ["White icons"], css: "skins/vertical-retro/skin.css", js: "skins/vertical-retro/skin.js" },
+        { id: "vertical-white", name: "Vertical White", author: "Leymo", builtin: true, tag: "Vertical", typeIcons: ["White icons"], css: "skins/vertical-white/skin.css", js: "skins/vertical-white/skin.js" },
+        { id: "vertical-purple", name: "Vertical Purple", author: "Leymo", builtin: true, tag: "Vertical", typeIcons: [], css: "skins/vertical-purple/skin.css", js: "skins/vertical-purple/skin.js" },
         { id: "juicy", name: "Juicy Battles", author: "Leymo", description: "Example effects skin.", builtin: true, css: "skins/juicy/skin.css", js: "skins/juicy/skin.js" }]);
     },
     listTypePacks() { return window.__packs ? JSON.stringify(window.__packs) : "[]"; },

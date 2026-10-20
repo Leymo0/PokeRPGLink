@@ -277,6 +277,8 @@ const SKIN_SWATCH = {
   daisy: ["#2f6fd6", "#ffffff", "#ffb627"], "daisy-white": ["#e9f0fb", "#ffffff", "#ffb627"], "daisy-oled": ["#000000", "#101018", "#ffb627"],
   juicy: ["#1a1530", "#251e40", "#ff5fa2"], matcha: ["#e3e8cf", "#f4efdf", "#7d9a55"], "oled-black": ["#000000", "#0e0c18", "#f3b23c"],
   "retro-purple": ["#10061f", "#2a1650", "#c77dff"], "retro-snes": ["#bdbac6", "#e7e5ec", "#5b4b9e"],
+  "vertical-oled": ["#000000", "#101018", "#ffb627"], "vertical-retro": ["#bdbac6", "#e7e5ec", "#5b4b9e"],
+  "vertical-white": ["#e9f0fb", "#ffffff", "#ffb627"], "vertical-purple": ["#10061f", "#2a1650", "#c77dff"],
 };
 const SKIN_TAG = { "catch-tracker": "Adds features", juicy: "Effects" };
 let switching = false;
