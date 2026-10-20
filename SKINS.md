@@ -33,8 +33,10 @@ Reference your own files from CSS with relative paths (`url(img/bg.png)`), and f
 
 ```json
 { "name": "My Skin", "author": "you", "version": "1.0", "description": "One line about it.",
-  "typeIcons": ["Dark icons"] }
+  "typeIcons": ["Dark icons"], "swatch": ["#10061f", "#2a1650", "#c77dff"], "tag": "Effects" }
 ```
+
+`swatch` (optional) is the little preview in the skin picker: background, card and accent colour. `tag` (optional) is a one- or two-word label under the name, e.g. *Effects* or *Adds features*.
 
 `typeIcons` (optional) names the type icon packs your skin looks best with, in order of preference; when the player's Type icons setting is *Match skin*, the first one they have installed is used.
 
