@@ -8,5 +8,6 @@
   "light",
   "white"
  ],
- "tag": "Vertical"
+ "tag": "Vertical",
+ "battlePages": true
 }

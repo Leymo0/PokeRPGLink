@@ -29,6 +29,7 @@ const I = {
   gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" stroke-linecap="round"/></svg>',
   play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.6-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>',
   hide: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg>',
+  back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>',
   close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   up: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 6l7 9H5z"/></svg>',
   down: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 18l7-9H5z"/></svg>',
@@ -44,7 +45,7 @@ const periodName = (p) => ({ morning: "Morning", day: "Day", evening: "Evening",
 /* ---------------- state ---------------- */
 let S = null;               // latest game state
 let root = "";
-let ui = { tab: "area", btab: "fight", pocket: null, dexType: null, dexFilter: "all", mapZoom: 1, special: false };
+let ui = { tab: "area", btab: "fight", bmenu: true, pocket: null, dexType: null, dexFilter: "all", mapZoom: 1, special: false };
 let dex = null, dexTime = 0, townmap = null, townTime = 0, lastDexReq = 0;
 let sheet = null;           // {kind, ...}
 let seenToasts = new Set();
@@ -283,10 +284,16 @@ const SKIN_SWATCH = {
 };
 const SKIN_TAG = { "catch-tracker": "Adds features", juicy: "Effects", pokedex: "Lively" };
 let switching = false;
+// Two-page battle layout (skin.json "battlePages": true): first a page with
+// Fight / Bag / Pokémon / Run, then the chosen page with a Back button.
+const PAGES_SKINS = ["vertical-oled", "vertical-retro", "vertical-white", "vertical-purple", "pokedex"];
+let battlePages = false;
 
 function loadSkin() {
   const sk = listSkins().find((x) => x.id === settings.skin);
   document.body.dataset.skin = sk ? sk.id : "default";
+  battlePages = !!(sk && (sk.battlePages || PAGES_SKINS.includes(sk.id)));
+  document.body.classList.toggle("bpages", battlePages);
   if (!sk) return;
   if (sk.css) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = sk.css; document.head.appendChild(l); }
   const any = sk.js || sk.css;
@@ -329,6 +336,15 @@ function diffEvents(prev, cur) {
   const pb = prev.battle, cb = cur.battle;
   if (!pb && cb) ev("battleStart", { trainer: cb.trainer, double: cb.double });
   if (pb && !cb) ev("battleEnd", {});
+  // two-page layout: a new battle or a new turn starts on the Fight/Bag/Pokémon/Run page;
+  // if the game itself opens its move list, follow it to the moves page
+  if (battlePages && cb) {
+    let ch = false;
+    if (!pb) { ui.bmenu = true; ui.btab = "fight"; ch = true; }
+    else if (cb.menu !== pb.menu && cb.menu === "command" && !ui.bmenu) { ui.bmenu = true; ui.btab = "fight"; ch = true; }
+    else if (cb.menu !== pb.menu && cb.menu === "fight" && ui.bmenu && !battleLocked()) { ui.bmenu = false; ui.btab = "fight"; ch = true; }
+    if (ch) setTimeout(() => render(true), 0);
+  }
   if (pb && cb) {
     if (cb.turn !== pb.turn) ev("turn", { turn: cb.turn + 1 });
     if (cb.menu !== pb.menu) ev("menu", { menu: cb.menu, was: pb.menu });
@@ -408,7 +424,7 @@ function render(force) {
   if (!force && key === lastRender) return;
   lastRender = key;
   const main = $("#main");
-  const view = inBattle ? "b-" + ui.btab : ui.tab;
+  const view = inBattle ? (battlePages && ui.bmenu ? "b-menu" : "b-" + ui.btab) : ui.tab;
   scrollMemo[ui._view] = main.scrollTop;
   renderBar(inBattle);
   renderTabs(inBattle);
@@ -483,6 +499,8 @@ function renderBar(inBattle) {
 
 function renderTabs(inBattle) {
   const tabs = $("#tabs");
+  // two-page layout: the four battle buttons only show on the first page
+  tabs.hidden = !!(inBattle && battlePages && !ui.bmenu);
   if (inBattle) {
     const b = S.battle;
     tabs.className = "battle";
@@ -490,9 +508,9 @@ function renderTabs(inBattle) {
     const L = (b.commands && b.commands.length === 4) ? b.commands : ["Fight", "Bag", "Pokémon", "Run"];
     const fourthOff = /^run$/i.test(L[3]) && !b.canRun;
     tabs.innerHTML = `
-      <button class="b-fight" data-bt="fight" aria-current="${ui.btab === "fight"}">${esc(L[0])}</button>
-      <button class="b-bag" data-bt="bag" aria-current="${ui.btab === "bag"}" ${b.noBag ? "disabled" : ""}>${esc(L[1])}</button>
-      <button class="b-mon" data-bt="mon" aria-current="${ui.btab === "mon"}">${esc(L[2])}</button>
+      <button class="b-fight" data-bt="fight" aria-current="${!battlePages && ui.btab === "fight"}">${esc(L[0])}</button>
+      <button class="b-bag" data-bt="bag" aria-current="${!battlePages && ui.btab === "bag"}" ${b.noBag ? "disabled" : ""}>${esc(L[1])}</button>
+      <button class="b-mon" data-bt="mon" aria-current="${!battlePages && ui.btab === "mon"}">${esc(L[2])}</button>
       <button class="b-run ${/call/i.test(L[3]) ? "b-call" : ""}" data-bcmd="3" ${fourthOff ? "disabled" : ""}>${esc(L[3])}</button>`;
     return;
   }
@@ -647,17 +665,15 @@ function renderBattle() {
   const last = (b.log || []).slice(-1)[0];
   const logBtn = last ? `<button class="logline" data-act="log"><span>${esc(last.text)}</span><span class="muted">Log</span></button>` : `<span class="logline spacer"></span>`;
   if (last || ballBtn) h += `<div class="logrow">${logBtn}${ballBtn}</div>`;
-  if (ui.btab === "mon") return h + renderSwitch(b);
-  if (ui.btab === "bag") return h + renderBag(true);
-
-  const doubles = b.double || foes.length > 1 || own.length > 1;
-  if (doubles) {
-    h += fieldGrid(b, (x) => miniCard(x, x.own && x.index === b.activeIndex && (b.menu === "command" || b.menu === "fight")));
-  } else {
-    h += `<div class="foes-row">${foes.map((f) => fighterCard(f)).join("")}</div>`;
-    const me = own.find((x) => x.index === b.activeIndex) || own[0];
-    if (me) h += fighterCard(me);
+  const back = battlePages ? `<button class="bback" data-act="bback" aria-label="Back to Fight / Bag / Pokémon / Run">${I.back}<span>Back</span></button>` : "";
+  if (battlePages && ui.bmenu) {
+    const locked = battleLocked();
+    return h + battleCards(b, foes, own) + `<div class="waiting">${locked ? "Waiting for the turn…" : b.menu === "command" || b.menu === "fight" ? "What will you do?" : "Waiting for the battle…"}</div>`;
   }
+  if (ui.btab === "mon") return h + renderSwitch(b) + back;
+  if (ui.btab === "bag") return h + renderBag(true) + back;
+
+  h += battleCards(b, foes, own);
   if (b.moves && b.moves.length) {
     h += `<div class="moves">`;
     for (const mv of b.moves) {
@@ -677,7 +693,16 @@ function renderBattle() {
     const locked = battleLocked();
     h += `<div class="waiting">${locked ? "Waiting for the turn…" : b.menu === "command" || b.menu === "fight" ? "Tap a move to use it · long-press for details" : "Waiting for the battle…"}</div>`;
   }
-  return h;
+  return h + back;
+}
+
+function toMenu() { ui.btab = "fight"; if (battlePages) ui.bmenu = true; }
+
+function battleCards(b, foes, own) {
+  const doubles = b.double || foes.length > 1 || own.length > 1;
+  if (doubles) return fieldGrid(b, (x) => miniCard(x, x.own && x.index === b.activeIndex && (b.menu === "command" || b.menu === "fight")));
+  const me = own.find((x) => x.index === b.activeIndex) || own[0];
+  return `<div class="foes-row">${foes.map((f) => fighterCard(f)).join("")}</div>` + (me ? fighterCard(me) : "");
 }
 
 function renderSwitch(b) {
@@ -1069,7 +1094,7 @@ document.addEventListener("click", (ev) => {
   if (d.effects) { settings.effects = d.effects === "1"; saveSettings(); return renderSheet(); }
   if (d.volume) { settings.volume = +d.volume; saveSettings(); beep(880, 60); return renderSheet(); }
   if (d.haptics) { settings.haptics = d.haptics === "1"; saveSettings(); return renderSheet(); }
-  if (d.bt) { ui.btab = d.bt; return render(true); }
+  if (d.bt) { ui.btab = d.bt; ui.bmenu = false; return render(true); }
   if (d.bcmd) { send("bcmd " + d.bcmd); return; }
   if (d.move != null) {
     if (longFired) return;
@@ -1078,10 +1103,10 @@ document.addEventListener("click", (ev) => {
     // single-target move in a double battle: ask who to hit before sending
     if (mv && mv.pick && mv.pick.length > 1 && !d.target) return openSheet({ kind: "target", slot: mv.slot, special: ui.special });
     send("bmove " + d.move + sp + (d.target ? " t=" + d.target : ""));
-    ui.special = false; closeSheet(); return render(true);
+    ui.special = false; if (battlePages) ui.bmenu = true; closeSheet(); return render(true);
   }
   if (d.gametarget != null) { send("btarget " + d.gametarget); return closeSheet(); }
-  if (d.switch != null) { send("bswitch " + d.switch); ui.btab = "fight"; return render(true); }
+  if (d.switch != null) { send("bswitch " + d.switch); toMenu(); return render(true); }
   if (d.fighter != null) return openSheet({ kind: "fighter", index: +d.fighter });
   if (d.info) return openSheet({ kind: "battleinfo" });
   if (d.mon != null) return openSheet({ kind: "mon", slot: +d.mon, seg: "summary" });
@@ -1100,18 +1125,18 @@ document.addEventListener("click", (ev) => {
   if (d.useon != null) {
     const inB = S.mode === "battle" && S.battle;
     if (sheet.needsMove) { sheet.slot = +d.useon; return renderSheet(); }
-    if (inB) { send(`bitem ${sheet.id} ${d.useon}`); ui.btab = "fight"; closeSheet(); return render(true); }
+    if (inB) { send(`bitem ${sheet.id} ${d.useon}`); toMenu(); closeSheet(); return render(true); }
     send(`useon ${sheet.id} ${d.useon}`); return closeSheet();
   }
   if (d.useonmove != null) {
     const inB = S.mode === "battle" && S.battle;
     send(`${inB ? "bitem" : "useon"} ${sheet.id} ${sheet.slot} ${d.useonmove}`);
-    if (inB) ui.btab = "fight";
+    if (inB) toMenu();
     closeSheet(); return render(true);
   }
   if (d.ball) {
     if (longFired) return;
-    send(`bball ${d.ball}`); closeSheet(); return;
+    send(`bball ${d.ball}`); toMenu(); closeSheet(); render(true); return;
   }
   if (d.dex) return openSheet({ kind: "dex", id: d.dex });
   if (d.dexf) { ui.dexFilter = d.dexf; return render(true); }
@@ -1137,6 +1162,7 @@ document.addEventListener("click", (ev) => {
     case "save-ask":
       if (S.features && S.features.saveAsks) { send("save"); return PokeRPGLink.toast("Confirm on the top screen"); }
       return openSheet({ kind: "confirm", title: "Save the game?", text: "This overwrites your current save, the same as saving from the menu.", ok: "Save", cmd: "save" });
+    case "bback": toMenu(); return render(true);
     case "openparty": case "openbag": case "opendex": case "openmap": return send(d.act);
     case "give": return openSheet({ kind: "give", slot: sheet.slot });
     case "take": send(`takeitem ${sheet.slot}`); return;
@@ -1147,7 +1173,7 @@ document.addEventListener("click", (ev) => {
       const it = (S.bag || []).flatMap((p) => p.items).find((i) => i.id === sheet.id);
       const kind = it && (inB ? it.battle : it.field);
       if (kind === "pokemon" || kind === "move") return openSheet({ kind: "useon", id: sheet.id, needsMove: kind === "move" });
-      if (inB) { send(`bitem ${sheet.id}`); ui.btab = "fight"; closeSheet(); return render(true); }
+      if (inB) { send(`bitem ${sheet.id}`); toMenu(); closeSheet(); return render(true); }
       send(`useitem ${sheet.id}`); return closeSheet();
     }
     case "giveto": return openSheet({ kind: "giveto", id: sheet.id });
@@ -1159,7 +1185,7 @@ loadSettings();
 applySettings();
 wake();
 loadSkin();
-{ const h = location.hash.slice(1).split("&")[0].split("-"); if (["area", "party", "bag", "map", "dex", "save"].includes(h[1] || h[0])) ui.tab = h[1] || h[0]; if ((h[0] === "battle" || h[0] === "double") && ["mon", "bag"].includes(h[1])) ui.btab = h[1]; }
+{ const h = location.hash.slice(1).split("&")[0].split("-"); if (["area", "party", "bag", "map", "dex", "save"].includes(h[1] || h[0])) ui.tab = h[1] || h[0]; if ((h[0] === "battle" || h[0] === "double") && ["fight", "mon", "bag"].includes(h[1])) { ui.btab = h[1]; ui.bmenu = false; } }
 render(true);
 // back from a skin change: show the settings again so you can keep browsing skins
 if (settings.reopenSettings) { delete settings.reopenSettings; saveSettings(); ui.setTab = "look"; openSheet({ kind: "settings" }); }

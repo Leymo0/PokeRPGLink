@@ -6,5 +6,6 @@
  "typeIcons": [
   "White icons"
  ],
- "tag": "Vertical"
+ "tag": "Vertical",
+ "battlePages": true
 }

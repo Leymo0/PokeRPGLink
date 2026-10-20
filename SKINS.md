@@ -36,6 +36,8 @@ Reference your own files from CSS with relative paths (`url(img/bg.png)`), and f
   "typeIcons": ["Dark icons"], "swatch": ["#10061f", "#2a1650", "#c77dff"], "tag": "Effects" }
 ```
 
+`battlePages` (optional, `true`) switches battles to a two-page layout: first a page with Fight / Bag / Pokémon / Run (the `#tabs.battle` buttons, view `b-menu`), then the chosen page with a Back button (`.bback`) in the bottom-left. The Vertical skins and Pokédex use it.
+
 `swatch` (optional) is the little preview in the skin picker: background, card and accent colour. `tag` (optional) is a one- or two-word label under the name, e.g. *Effects* or *Adds features*.
 
 `typeIcons` (optional) names the type icon packs your skin looks best with, in order of preference; when the player's Type icons setting is *Match skin*, the first one they have installed is used.

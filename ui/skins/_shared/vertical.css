@@ -20,15 +20,20 @@
 #tabs.battle button { font-size: 16px; padding: 0 4px; min-height: 0; border-radius: 22px; }
 
 /* ---------- battle: fight view ---------- */
-body[data-view="b-fight"] #main {
+body[data-view="b-fight"] #main, body[data-view="b-menu"] #main {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
-  /* left-column rows size to their content, the last row takes what's left */
-  grid-template-rows: repeat(9, auto) 1fr;
+  /* left-column rows size to their content; one row takes what's left; Back sits in the last */
+  grid-template-rows: repeat(9, auto) 1fr auto;
   column-gap: 10px;
   overflow-y: auto;
 }
-body[data-view="b-fight"] #main > * { grid-column: 1; min-width: 0; }
+body[data-view="b-fight"] #main > *, body[data-view="b-menu"] #main > * { grid-column: 1; min-width: 0; }
+body[data-view="b-fight"] #main > .bback { grid-row: -2 / -1; position: static; }
+body[data-view="b-fight"] #main > .waiting, body[data-view="b-menu"] #main > .waiting { grid-row: -3 / -2; align-self: end; text-align: left; }
+/* first page: Fight / Bag / Pokémon / Run — the rail gets wide, four tall buttons */
+body[data-view="b-menu"] #tabs.battle { width: 50%; gap: 10px; padding: 10px; }
+body[data-view="b-menu"] #tabs.battle button { font-size: 24px; }
 body[data-view="b-fight"] #main > .moves {
   grid-column: 2; grid-row: 1 / -1;
   display: grid; grid-template-columns: 1fr; grid-auto-rows: minmax(64px, 104px);
@@ -42,10 +47,9 @@ body[data-view="b-fight"] .moves .move .ticon { width: 44px; height: 44px; paddi
 body[data-view="b-fight"] .moves .move .mn { font-size: 19px; line-height: 22px; }
 body[data-view="b-fight"] .moves .move .meff { font-size: 13px; }
 body[data-view="b-fight"] .moves .move .ppbig b { font-size: 24px; }
-body[data-view="b-fight"] #main > .waiting { grid-row: -2; align-self: end; text-align: left; }
-body[data-view="b-fight"] #main > .bstrip { flex-wrap: wrap; overflow: visible; }
+body[data-view="b-fight"] #main > .bstrip, body[data-view="b-menu"] #main > .bstrip { flex-wrap: wrap; overflow: visible; }
 
 /* ---------- out of battle: use the width well ---------- */
 .prow, .row-btn { min-height: 52px; }
 /* doubles: the four small battle cards stack in one column (2×2 is too tight here) */
-body[data-view="b-fight"] .field2 { grid-template-columns: 1fr; }
+body[data-view="b-fight"] .field2, body[data-view="b-menu"] .field2 { grid-template-columns: 1fr; }

@@ -4,5 +4,6 @@
  "version": "1.0",
  "description": "The Retro Purple look with moves stacked down the right side.",
  "typeIcons": [],
- "tag": "Vertical"
+ "tag": "Vertical",
+ "battlePages": true
 }

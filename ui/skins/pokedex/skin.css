@@ -166,3 +166,23 @@ body.x-still, body.x-still * { animation: none !important; }
 #tabs.battle button[aria-current="true"] { outline: 0; }
 .chip.choosing { background: var(--x-red); color: #fff; }
 #tabs.battle .b-fight, #tabs.battle .b-fight:active { box-shadow: none; }
+
+/* ---- two-page battle: first page is the handheld's big menu ---- */
+body[data-view="b-menu"] #tabs.battle {
+  grid-template-columns: 1fr 1fr 1fr; grid-template-areas: "f f f" "b r m"; grid-auto-flow: row;
+  padding: 18px 12px 12px; gap: 12px 10px;
+  background: radial-gradient(rgba(255,255,255,.22) 1.4px, transparent 1.8px) 0 0 / 9px 9px, linear-gradient(180deg, #e9eef4, #c9d3de);
+}
+body[data-view="b-menu"] #tabs.battle .b-fight { grid-area: f; margin: 0 auto; width: min(92%, 380px); height: 124px; font-size: 34px; letter-spacing: .06em; }
+body[data-view="b-menu"] #tabs.battle .b-bag { grid-area: b; }
+body[data-view="b-menu"] #tabs.battle .b-run { grid-area: r; }
+body[data-view="b-menu"] #tabs.battle .b-mon { grid-area: m; }
+body[data-view="b-menu"] #tabs.battle .b-bag, body[data-view="b-menu"] #tabs.battle .b-run, body[data-view="b-menu"] #tabs.battle .b-mon { font-size: 20px; padding: 16px 0; }
+.bback { background: linear-gradient(180deg, #7cc3ff, var(--x-blue)); border: 2.5px solid var(--x-ink); box-shadow: 0 3px 0 var(--x-ink), inset 0 2px 0 rgba(255,255,255,.4);
+  border-radius: 4px 14px 14px 4px; text-shadow: 0 1px 0 rgba(0,0,0,.4);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 10px 100%, 0 calc(100% - 10px)); }
+/* moves page: taller moves, easy to hit */
+body[data-view="b-fight"] .moves .move { min-height: 74px; }
+body[data-view="b-fight"] .moves .move .mn { font-size: 19px; line-height: 22px; }
+body[data-view="b-fight"] .moves .move { align-content: center; }
+body[data-view="b-menu"] #main > .waiting { display: none; }

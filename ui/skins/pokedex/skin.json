@@ -3,7 +3,16 @@
  "author": "Leymo",
  "version": "1.0",
  "description": "Red Pokédex shell, sky-blue map grid, chunky white panels and a starburst FIGHT button. Lively: things bob, shine and bounce.",
- "typeIcons": ["White icons", "light", "white"],
- "swatch": ["#8fd6f0", "#ffffff", "#e8343a"],
- "tag": "Lively"
+ "typeIcons": [
+  "White icons",
+  "light",
+  "white"
+ ],
+ "swatch": [
+  "#8fd6f0",
+  "#ffffff",
+  "#e8343a"
+ ],
+ "tag": "Lively",
+ "battlePages": true
 }
