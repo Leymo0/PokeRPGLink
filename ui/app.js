@@ -39,7 +39,22 @@ const I = {
   rain: '<svg viewBox="0 0 24 24" fill="none" stroke="#8fb6ff" stroke-width="2" stroke-linecap="round"><path d="M7 15a4 4 0 1 1 1-7.9A5 5 0 0 1 18 9a3 3 0 0 1-1 6z"/><path d="M9 18l-1 3M13 18l-1 3M17 18l-1 3"/></svg>',
   field: '<svg viewBox="0 0 24 24" fill="none" stroke="#d6c4ff" stroke-width="2" stroke-linejoin="round"><path d="M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/></svg>',
   shield: '<svg viewBox="0 0 24 24" fill="none" stroke="#9fd8ff" stroke-width="2" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg>',
+  trophy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8 21h8M9 18h6"/></svg>',
+  swap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h14l-4-4M20 16H6l4 4"/></svg>',
 };
+// Battle facility glyphs (World Frontier and Battle Tower-style challenges)
+const FAC_GLYPH = {
+  world: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3.5 3 3.5 15 0 18M12 3c-3.5 3-3.5 15 0 18"/>',
+  tower: '<path d="M8 21V7l4-4 4 4v14M6 21h12M10 11h4M10 15h4"/>',
+  castle: '<path d="M4 21V8h3v3h3V8h4v3h3V8h3v13zM10 21v-5h4v5"/>',
+  temple: '<path d="M3 9l9-5 9 5M5 9v10M9.5 9v10M14.5 9v10M19 9v10M3 21h18"/>',
+  cathedral: '<path d="M12 2v4M10 4h4M7 21V11l5-5 5 5v10M4 21h16M10 21v-4a2 2 0 0 1 4 0v4"/>',
+  victini: '<rect x="4" y="4" width="16" height="16" rx="3.5"/><circle cx="8.5" cy="8.5" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.3" fill="currentColor"/>',
+  fortress: '<path d="M20 12a8 8 0 0 1-14 5.3M4 12a8 8 0 0 1 14-5.3"/><path d="M18 3v4h-4M6 21v-4h4"/>',
+  cruise: '<path d="M3 15h18l-2.5 5h-13zM6 15V9h12v6M10 9V5h4v4"/>',
+  stadium: '<ellipse cx="12" cy="12" rx="9.5" ry="6.5"/><ellipse cx="12" cy="12" rx="4" ry="2.5"/><path d="M12 5.5v4M12 14.5v4"/>',
+};
+const facGlyph = (id) => `<svg class="fglyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${FAC_GLYPH[id] || FAC_GLYPH.tower}</svg>`;
 const periodIcon = (p) => ({ morning: I.dawn, day: I.sun, evening: I.dusk, night: I.moon }[p] || I.sun);
 const periodName = (p) => ({ morning: "Morning", day: "Day", evening: "Evening", night: "Night" }[p] || "Day");
 
@@ -204,6 +219,15 @@ function applyGameLook() {
   if (!k) return false;
   const look = (settings.perGame || {})[k];
   const pick = settings.lastPick;
+  const own = !look && !pick && GAME_SKIN[S.game && S.game.family];
+  if (own && own !== settings.skin && listSkins().some((x) => x.id === own)) {
+    settings.perGame = settings.perGame || {};
+    settings.perGame[k] = { skin: own, typePack: "auto", t: Date.now() };
+    settings.skin = own; settings.typePack = "auto";
+    saveSettings();
+    location.reload();
+    return true;
+  }
   if (!look || (pick && pick.t > (look.t || 0))) {
     settings.perGame = settings.perGame || {};
     settings.perGame[k] = { skin: settings.skin, typePack: settings.typePack || "auto", t: Date.now() };
@@ -281,9 +305,11 @@ const SKIN_SWATCH = {
   "retro-purple": ["#10061f", "#2a1650", "#c77dff"], "retro-snes": ["#bdbac6", "#e7e5ec", "#5b4b9e"],
   "vertical-oled": ["#000000", "#101018", "#ffb627"], "vertical-retro": ["#bdbac6", "#e7e5ec", "#5b4b9e"],
   "vertical-white": ["#e9f0fb", "#ffffff", "#ffb627"], "vertical-purple": ["#10061f", "#2a1650", "#c77dff"],
-  pokedex: ["#8fd6f0", "#ffffff", "#e8343a"],
+  pokedex: ["#8fd6f0", "#ffffff", "#e8343a"], "world-frontier": ["#0a1128", "#14204a", "#f2c14e"],
 };
-const SKIN_TAG = { "catch-tracker": "Adds features", juicy: "Effects", pokedex: "Lively" };
+const SKIN_TAG = { "catch-tracker": "Adds features", juicy: "Effects", pokedex: "Lively", "world-frontier": "Battle Frontier" };
+// games that come with their own built-in skin the first time they connect
+const GAME_SKIN = { "world-frontier": "world-frontier" };
 let switching = false;
 // Two-page battle layout (skin.json "battlePages": true): first a page with
 // Fight / Bag / Pokémon / Run, then the chosen page with a Back button.
@@ -421,6 +447,9 @@ document.addEventListener("pointerdown", wake, true);
 function render(force) {
   if (!S || S._stale) return renderOffline();
   const inBattle = S.mode === "battle" && S.battle;
+  // World Frontier has no wild Pokémon: its Frontier tab takes the Area tab's place
+  if (S.frontier && S.frontier.game && ui.tab === "area") ui.tab = "frontier";
+  if (!S.frontier && ui.tab === "frontier") ui.tab = "area";
   const key = JSON.stringify([S.frame && 0, S, ui, sheet && sheet.kind, inBattle]);
   if (!force && key === lastRender) return;
   lastRender = key;
@@ -434,7 +463,7 @@ function render(force) {
   else {
     const pt = PLUG.tabs.find((t) => t.id === ui.tab);
     let body;
-    try { body = pt ? pt.render(S) || "" : ({ area: renderArea, party: renderParty, bag: renderBag, map: renderMap, dex: renderDex, save: renderSave }[ui.tab] || renderArea)(); }
+    try { body = pt ? pt.render(S) || "" : ({ area: renderArea, frontier: renderFrontier, party: renderParty, bag: renderBag, map: renderMap, dex: renderDex, save: renderSave }[ui.tab] || renderArea)(); }
     catch (e) { body = `<div class="empty">This tab hit an error: ${esc(e.message)}</div>`; }
     main.innerHTML = pluginSections(ui.tab) + body;
   }
@@ -491,7 +520,8 @@ function renderBar(inBattle) {
     const b = S.battle;
     h = `<div class="place">${b.trainer ? "Trainer battle" : "Wild battle"} <span class="sub">· turn ${b.turn + 1}</span></div>`;
   } else if (S.map) {
-    h = `<div class="place">${esc(S.map.name || "Unknown area")}</div><span class="period">${periodIcon(S.map.period)}${periodName(S.map.period)}</span>`;
+    // World Frontier's island has no day/night that matters: skip the time chip there
+    h = `<div class="place">${esc(S.map.name || "Unknown area")}</div>${S.frontier && S.frontier.game ? "" : `<span class="period">${periodIcon(S.map.period)}${periodName(S.map.period)}</span>`}`;
   } else h = `<div class="place">PokeRPGLink</div>`;
   h += PLUG.barButtons.map((b) => `<button class="padbtn" data-plugbar="${esc(b.id)}" aria-label="${esc(b.label || b.id)}">${b.icon || esc((b.label || "?").slice(0, 2))}</button>`).join("");
   h += `<button class="padbtn" data-act="settings" aria-label="Panel settings">${I.gear}</button><button class="padbtn" data-act="pad" aria-label="Buttons">${I.pad}</button>${B.setCollapsed ? `<button class="padbtn" data-act="hide" aria-label="Hide panel">${I.hide}</button>` : ""}${!live && B.play ? `<button class="padbtn" data-act="play" aria-label="Open the game app on the top screen">${I.play || "▶"}</button>` : ""}<span class="dot ${live ? "on" : ""}" title="${live ? "Connected" : "Game not responding"}"></span>`;
@@ -517,6 +547,10 @@ function renderTabs(inBattle) {
   }
   tabs.className = "";
   const T = [["area", "Area", I.area], ["party", "Pokémon", I.party], ["bag", "Bag", I.bag], ["map", "Map", I.map], ["dex", "Pokédex", I.dex], ["save", "Save", I.save]];
+  if (S.frontier) {
+    if (S.frontier.game) T.splice(0, 1, ["frontier", "Frontier", I.trophy]);   // World Frontier: no wild areas
+    else T.splice(1, 0, ["frontier", "Frontier", I.trophy]);                  // a Battle Tower run in a story game
+  }
   for (const t of PLUG.tabs) T.push([t.id, t.label, t.icon || I.dex]);
   tabs.innerHTML = T.map(([k, n, svg]) => `<button data-tab="${esc(k)}" aria-current="${ui.tab === k}">${svg}${esc(n)}</button>`).join("");
 }
@@ -656,6 +690,10 @@ function renderBattle() {
   const foes = b.battlers.filter((x) => !x.own);
   const own = b.battlers.filter((x) => x.own);
   let h = `<div class="bstrip">`;
+  // battle facilities: which one, which battle, the Ace, and inverse battles (World Frontier)
+  if (b.frontier) h += `<button class="frontchip f-${esc(b.frontier.id)}" data-fac="${esc(b.frontier.id)}">${facGlyph(b.frontier.id)}${esc(String(b.frontier.name).replace(/^Battle /, ""))}${b.frontier.battle ? ` · ${b.frontier.battle}` : ""}</button>`;
+  if (b.frontier && b.frontier.ace) h += `<button class="acechip" data-fac="${esc(b.frontier.id)}">${I.trophy}Ace battle</button>`;
+  if (b.inverse) h += `<button class="invchip" data-act="inverse">${I.swap}Inverse</button>`;
   if (b.weather) h += `<button data-info="weather">${I.rain}${esc(b.weather.name || WEATHER[b.weather.id] || pretty(b.weather.id))}${b.weather.turns > 0 ? ` · ${b.weather.turns}` : ""}</button>`;
   if (b.field && b.field.isField && b.field.name) h += `<button class="fieldchip" data-info="field">${I.field}${esc(b.field.name)}${b.field.duration > 0 ? ` · ${b.field.duration}` : ""}</button>`;
   for (const g of b.global || []) h += `<button data-info="global">${esc(pretty(g.id))}${g.turns ? ` · ${g.turns}` : ""}</button>`;
@@ -865,6 +903,76 @@ function renderSave() {
     <p class="hint">These open the game's own screens on the top display.</p>`;
 }
 
+/* ---------- Frontier: battle facilities (World Frontier, Battle Tower runs) ---------- */
+// where you are in the run and how far the facility's Ace is
+function aceInfo(f) {
+  const fac = f.facility;
+  if (!fac || !fac.ace || f.streak == null) return null;
+  const next = f.streak + 1;
+  if (f.streak >= fac.ace) return { pct: 100, text: `Ace beaten this run — streak ${f.streak}`, done: true };
+  if (next === fac.ace) return { pct: 100, text: "Next battle is the Ace!", now: true };
+  return { pct: Math.round((100 * f.streak) / fac.ace), text: `Ace at battle ${fac.ace} · ${fac.ace - next} more to go` };
+}
+function renderFrontier() {
+  const f = S.frontier;
+  if (!f) return `<div class="empty">No battle facility right now.</div>`;
+  const fac = f.facility;
+  let h = `<div class="frontier f-${esc(fac ? fac.id : "world")}">`;
+  if (fac) {
+    h += `<button class="fhero f-${esc(fac.id)}" data-fac="${esc(fac.id)}">${facGlyph(fac.id)}<div class="grow"><div class="fname">${esc(fac.name)}</div><div class="fsub">${esc(fac.format)}${f.inChallenge ? "" : " · lobby"}</div></div>${f.inChallenge ? `<span class="chip live">In a run</span>` : ""}</button>`;
+  } else {
+    h += `<div class="fhero f-world">${facGlyph("world")}<div class="grow"><div class="fname">${f.game ? "World Frontier" : "Battle facility"}</div><div class="fsub">${f.game ? "Walk into a facility to start a run" : "Challenge in progress"}</div></div></div>`;
+  }
+  const cells = [];
+  if (f.streak != null) cells.push(["Battle", f.streak + 1]);
+  else if (f.battle != null) cells.push(["Battle", f.battle + (f.rounds ? `<small>/${f.rounds}</small>` : "")]);
+  if (f.streak != null) cells.push(["Streak", f.streak]);
+  if (f.best != null) cells.push(["Best", f.best]);
+  if (f.bp != null) cells.push(["BP", f.bp.toLocaleString()]);
+  if (f.swaps != null) cells.push(["Swaps", f.swaps]);
+  if (cells.length) h += `<div class="fstats">${cells.map(([k, v]) => `<div><span>${k}</span><b class="num">${v}</b></div>`).join("")}</div>`;
+  const ace = f.inChallenge ? aceInfo(f) : null;
+  if (ace) h += `<div class="ace ${ace.now ? "now" : ""} ${ace.done ? "done" : ""}"><div class="acebar"><i style="width:${ace.pct}%"></i></div><span>${esc(ace.text)}</span></div>`;
+  if (fac) h += `<p class="prose frule">${esc(fac.rule)}${fac.id === "cathedral" ? " The move buttons already show inverse effectiveness." : ""}</p>`;
+  const party = S.party || [];
+  if (party.length) {
+    h += `<h2>Your team${fac && fac.id === "cruise" ? " <span class=\"count\">rentals</span>" : ""}</h2><div class="fteam">`;
+    h += party.map((p) => `<button class="fmon ${p.hp <= 0 && !p.egg ? "fainted" : ""}" data-mon="${p.slot}">${icoOf(p, p.name)}<b>${esc(p.name)}</b><span class="ft">${(p.types || []).map((t, i) => `<i class="tdot t-${esc(t)}" title="${esc((p.typeNames || [])[i] || t)}"></i>`).join("")}</span></button>`).join("");
+    h += `</div>`;
+  }
+  if ((f.facilities || []).length) {
+    const done = f.facilities.filter((x) => x.earned).length;
+    h += `<h2>The island<span class="count">${(f.symbols || []).length ? `${done} symbol${done === 1 ? "" : "s"}` : "9 challenges"}</span></h2><div class="ftiles">`;
+    h += f.facilities.map((x) => `<button class="ftile f-${esc(x.id)} ${x.earned ? "earned" : ""}" data-fac="${esc(x.id)}" aria-current="${!!(fac && fac.id === x.id)}">${facGlyph(x.id)}<b>${esc(x.name.replace(/^Battle /, ""))}</b><span>${esc(x.format)}</span>${x.earned ? `<em class="sym">${I.trophy}</em>` : ""}</button>`).join("");
+    h += `</div>`;
+  }
+  if ((f.symbols || []).length) h += `<h2>Symbols</h2><div class="fsyms">${f.symbols.map((n) => `<span class="chip">${I.trophy}${esc(n)}</span>`).join("")}</div>`;
+  if ((f.info || []).length) h += `<h2>Game counters</h2><dl class="kv watch">${f.info.map((w) => `<dt>${esc(w.label)}</dt><dd class="num">${esc(w.value)}</dd>`).join("")}</dl>`;
+  return h + `</div>`;
+}
+function facilitySheet(id) {
+  const f = S.frontier || {};
+  const x = (f.facilities || []).find((q) => q.id === id) || (f.facility && f.facility.id === id ? f.facility : null);
+  if (!x) return null;
+  const here = f.facility && f.facility.id === id;
+  let h = head(`<span class="fhead f-${esc(x.id)}">${facGlyph(x.id)}</span>`, esc(x.name), esc(x.format));
+  h += `<p class="prose">${esc(x.rule)}</p><dl class="kv">`;
+  if (x.ace) h += `<dt>Ace</dt><dd>Waits at battle ${x.ace} — beat them for the facility's symbol</dd>`;
+  if (x.earned != null) h += `<dt>Symbol</dt><dd>${x.earned ? "Earned" : "Not yet"}</dd>`;
+  if (here && f.streak != null) h += `<dt>This run</dt><dd class="num">Streak ${f.streak}${f.best != null ? ` · best ${f.best}` : ""}</dd>`;
+  h += `</dl>`;
+  if (x.id === "cathedral") h += inverseTable();
+  if (x.id === "world") h += `<p class="hint">Clear all eight facilities to open it.</p>`;
+  return h;
+}
+function inverseTable() {
+  return `<div class="invtab"><div><span>Normally</span><span>Inverse</span></div>
+    <div><b class="se">×2 super effective</b><b class="nve">×½</b></div>
+    <div><b class="nve">×½ not very effective</b><b class="se">×2</b></div>
+    <div><b class="imm">×0 no effect</b><b class="se">×2</b></div></div>
+    <p class="hint">Dual types multiply as usual, so a double weakness becomes ×¼ and a double resistance ×4.</p>`;
+}
+
 /* ---------------- sheets ---------------- */
 function openSheet(s) { sheet = s; renderSheet(); }
 function closeSheet() { sheet = null; $("#sheet-wrap").hidden = true; }
@@ -1036,6 +1144,12 @@ function renderSheet() {
     h = head("", "Story log");
     h += lines.length ? `<ol class="story">${lines.map((l) => `<li>${l.who ? `<b class="who">${esc(l.who)}</b>` : ""}<span>${hlLog(l.text, null)}</span></li>`).join("")}</ol>`
       : `<p class="hint">Nothing yet — every message box you read in the game (talking, signs, items) shows up here so you can scroll back.</p>`;
+  } else if (s.kind === "facility") {
+    h = facilitySheet(s.id);
+    if (!h) return closeSheet();
+  } else if (s.kind === "inverse") {
+    h = head(`<span class="fhead f-cathedral">${I.swap}</span>`, "Inverse battle", "The type chart is flipped");
+    h += inverseTable() + `<p class="prose">Every move button already shows the flipped effectiveness, so a move marked <b>Super effective</b> really is.</p>`;
   } else if (s.kind === "plugin") {
     h = head("", esc(s.title || "")) + (s.html || "");
   } else if (s.kind === "settings") {
@@ -1167,6 +1281,7 @@ document.addEventListener("click", (ev) => {
   if (d.switch != null) { send("bswitch " + d.switch); toMenu(); return render(true); }
   if (d.fighter != null) return openSheet({ kind: "fighter", index: +d.fighter });
   if (d.info) return openSheet({ kind: "battleinfo" });
+  if (d.fac) return openSheet({ kind: "facility", id: d.fac });
   if (d.mon != null) return openSheet({ kind: "mon", slot: +d.mon, seg: "summary" });
   if (d.seg) { sheet.seg = d.seg; sheet.pick = null; return renderSheet(); }
   if (d.mslot != null) {
@@ -1215,6 +1330,7 @@ document.addEventListener("click", (ev) => {
     case "setup": try { B.openSetup(); } catch (e) {} return;
     case "log": return openSheet({ kind: "log" });
     case "story": return openSheet({ kind: "story" });
+    case "inverse": return openSheet({ kind: "inverse" });
     case "hide": try { B.setCollapsed(true); } catch (e) {} return;
     case "pad": { const p = $("#pad"); p.hidden = !p.hidden; if (!p.hidden) renderPad(); return; }
     case "special": ui.special = !ui.special; return render(true);
@@ -1244,7 +1360,7 @@ loadSettings();
 applySettings();
 wake();
 loadSkin();
-{ const h = location.hash.slice(1).split("&")[0].split("-"); if (["area", "party", "bag", "map", "dex", "save"].includes(h[1] || h[0])) ui.tab = h[1] || h[0]; if ((h[0] === "battle" || h[0] === "double") && ["fight", "mon", "bag"].includes(h[1])) { ui.btab = h[1]; ui.bmenu = false; } }
+{ const h = location.hash.slice(1).split("&")[0].split("-"); if (["area", "frontier", "party", "bag", "map", "dex", "save"].includes(h[1] || h[0])) ui.tab = h[1] || h[0]; if ((h[0] === "battle" || h[0] === "double") && ["fight", "mon", "bag"].includes(h[1])) { ui.btab = h[1]; ui.bmenu = false; } }
 render(true);
 // back from a skin change: show the settings again so you can keep browsing skins
 if (settings.reopenSettings) { delete settings.reopenSettings; saveSettings(); ui.setTab = "look"; openSheet({ kind: "settings" }); }

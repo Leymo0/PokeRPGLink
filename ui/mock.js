@@ -114,7 +114,51 @@
     { id: 5, who: "Old Man", text: "Back in my day, the Route 1 grass was full of Pikachu." },
     { id: 6, who: "", text: "Ash put the Potion in the Items Pocket." }] };
   mapState.storyId = 6;
-  const scenes = { map: mapState, battle: battleState, double: dbl, shadow };
+  // Pokémon World Frontier: a run in the Battle Cathedral (inverse battles)
+  const FAC = [["world", "World Stadium", "Champions", "Rivals and Champions from across the series. Opens once all eight facilities are cleared."],
+    ["tower", "Battle Tower", "Singles", "Classic one-on-one single battles."], ["castle", "Battle Castle", "Judged", "Every battle is overseen by a judge."],
+    ["temple", "Battle Temple", "Roguelike", "A roguelike run through the temple's floors, with a boss at the end."],
+    ["cathedral", "Battle Cathedral", "Inverse", "Inverse battles: the type chart is flipped. Super effective becomes not very effective, and immunities become weaknesses."],
+    ["victini", "Battle Victini", "Random", "Battles with a dose of randomness thrown in."], ["fortress", "Battle Fortress", "Rotation", "Rotation battles."],
+    ["cruise", "Battle Cruise", "Rentals", "Rental Pokémon only — your own team stays on shore."], ["stadium", "Battle Stadium", "Doubles", "Double battles."]]
+    .map(([id, name, format, rule]) => ({ id, name, format, rule, ...(id === "world" ? {} : { ace: 30 }), earned: id === "tower" || id === "stadium" }));
+  const wfParty = [
+    mon(0, "GARCHOMP", "Garchomp", 50, 183, 183, ["DRAGON", "GROUND"], ["Dragon", "Ground"], { item: { name: "Choice Scarf" } }),
+    mon(1, "TOXAPEX", "Toxapex", 50, 111, 111, ["POISON", "WATER"], ["Poison", "Water"]),
+    mon(2, "CORVIKNIGHT", "Corviknight", 50, 98, 205, ["FLYING", "STEEL"], ["Flying", "Steel"]),
+    mon(3, "GHOLDENGO", "Gholdengo", 50, 163, 163, ["STEEL", "GHOST"], ["Steel", "Ghost"]),
+    mon(4, "ROTOMWASH", "Rotom", 50, 0, 125, ["ELECTRIC", "WATER"], ["Electric", "Water"]),
+    mon(5, "VOLCARONA", "Volcarona", 50, 160, 160, ["BUG", "FIRE"], ["Bug", "Fire"]),
+  ];
+  const wf = JSON.parse(JSON.stringify(mapState));
+  Object.assign(wf, { game: { title: "Pokémon World Frontier", version: "1.2.0", family: "world-frontier" }, party: wfParty, storyId: undefined,
+    player: { name: "Khalid", money: 0, badges: 0, seen: 1025, owned: 1025 }, map: { id: 12, name: "Battle Cathedral", period: "day", encounters: [] } });
+  wf.frontier = { game: true, inChallenge: true, facility: FAC[4], battle: 3, rounds: 7, streak: 23, best: 23, bp: 1840,
+    symbols: ["Símbolo Torre", "Símbolo Estadio"], facilities: FAC, info: [{ label: "Racha Catedral", value: 23 }] };
+  const wfb = JSON.parse(JSON.stringify(dbl));
+  Object.assign(wfb, { game: wf.game, party: wfParty, frontier: wf.frontier, player: wf.player, map: wf.map });
+  wfb.battle.weather = null; wfb.battle.field = null; wfb.battle.trainer = true; wfb.battle.canRun = false; wfb.battle.sides = [{ Reflect: 3 }, {}];
+  wfb.battle.inverse = true;
+  wfb.battle.frontier = { id: "cathedral", name: "Battle Cathedral", battle: 24, ace: false };
+  wfb.battle.battlers = [
+    { index: 1, own: false, name: "Sylveon", speciesName: "Sylveon", level: 50, hp: 140, maxhp: 170, hpPct: 82, types: ["FAIRY"], typeNames: ["Fairy"], ability: { name: "Pixilate" }, stages: {}, effects: [] },
+    { index: 3, own: false, name: "Skarmory", speciesName: "Skarmory", level: 50, hp: 140, maxhp: 140, hpPct: 100, types: ["STEEL", "FLYING"], typeNames: ["Steel", "Flying"], ability: { name: "Sturdy" }, stages: { def: 1 }, effects: [] },
+    { index: 0, own: true, name: "Garchomp", speciesName: "Garchomp", level: 50, hp: 183, maxhp: 183, types: ["DRAGON", "GROUND"], typeNames: ["Dragon", "Ground"], ability: { name: "Rough Skin" }, stages: {}, effects: [] },
+    { index: 2, own: true, name: "Toxapex", speciesName: "Toxapex", level: 50, hp: 111, maxhp: 111, types: ["POISON", "WATER"], typeNames: ["Poison", "Water"], ability: { name: "Regenerator" }, stages: {}, effects: [] },
+  ];
+  // inverse: Dragon vs Fairy (normally ×0) = ×2; Ground vs Flying (normally ×0) = ×2
+  wfb.battle.moves = [
+    { slot: 0, name: "Earthquake", type: "GROUND", typeName: "Ground", cat: "physical", pow: 100, acc: 100, pp: 14, maxpp: 16, stab: true, target: "AllNearOthers", vs: [{ index: 1, foe: true, mult: 1 }, { index: 3, foe: true, mult: 2 }, { index: 2, foe: false, mult: 0.5 }], desc: "Hits everyone else." },
+    { slot: 1, name: "Outrage", type: "DRAGON", typeName: "Dragon", cat: "physical", pow: 120, acc: 100, pp: 10, maxpp: 16, stab: true, vs: [{ index: 1, foe: true, mult: 2 }, { index: 3, foe: true, mult: 2 }], desc: "Rampages for 2–3 turns." },
+    { slot: 2, name: "Iron Head", type: "STEEL", typeName: "Steel", cat: "physical", pow: 80, acc: 100, pp: 15, maxpp: 15, pick: [1, 2, 3], vs: [{ index: 1, foe: true, mult: 0.5 }, { index: 3, foe: true, mult: 2 }, { index: 2, foe: false, mult: 1 }], desc: "May flinch." },
+    { slot: 3, name: "Swords Dance", type: "NORMAL", typeName: "Normal", cat: "status", pow: 0, acc: 0, pp: 20, maxpp: 20, vs: [{ index: 1, mult: null }], desc: "Sharply raises Attack." },
+  ];
+  wfb.battle.log = [{ id: 1, text: "Ace Trainer Lucía sent out Sylveon and Skarmory!" }, { id: 2, text: "It's an inverse battle! Type matchups are reversed!" }, { id: 3, text: "Garchomp used Earthquake!" }, { id: 4, text: "It's super effective!" }];
+  wfb.battle.balls = null;
+  const wface = JSON.parse(JSON.stringify(wfb));
+  wface.frontier = { ...wf.frontier, streak: 29, battle: 2 };
+  wface.battle.frontier = { id: "cathedral", name: "Battle Cathedral", battle: 30, ace: true };
+  const scenes = { map: mapState, battle: battleState, double: dbl, shadow, wf, wfbattle: wfb, wface };
   let served = null;
   window.PokeRPGBridge = {
     readState() { const h0 = location.hash.slice(1).split(/[-&]/)[0]; if (h0 === "offline") return ""; const k = scenes[h0] ? h0 : "map"; if (served === k) return ""; served = k; return JSON.stringify(scenes[k]); },
@@ -139,11 +183,21 @@
         { id: "vertical-white", name: "Vertical White", author: "Leymo", builtin: true, tag: "Vertical", typeIcons: ["White icons"], css: "skins/vertical-white/skin.css", js: "skins/vertical-white/skin.js" },
         { id: "vertical-purple", name: "Vertical Purple", author: "Leymo", builtin: true, tag: "Vertical", typeIcons: [], css: "skins/vertical-purple/skin.css", js: "skins/vertical-purple/skin.js" },
         { id: "pokedex", name: "Pokédex", author: "Leymo", builtin: true, tag: "Lively", typeIcons: ["White icons"], css: "skins/pokedex/skin.css", js: "skins/pokedex/skin.js" },
-        { id: "juicy", name: "Juicy Battles", author: "Leymo", description: "Example effects skin.", builtin: true, css: "skins/juicy/skin.css", js: "skins/juicy/skin.js" }]);
+        { id: "juicy", name: "Juicy Battles", author: "Leymo", description: "Example effects skin.", builtin: true, css: "skins/juicy/skin.css", js: "skins/juicy/skin.js" },
+        { id: "world-frontier", name: "World Frontier", author: "Leymo", builtin: true, tag: "Battle Frontier", typeIcons: [], css: "skins/world-frontier/skin.css", js: "skins/world-frontier/skin.js" }]);
     },
     listTypePacks() { return window.__packs ? JSON.stringify(window.__packs) : "[]"; },
-    getSetting(k) { const m = location.hash.match(/skin=([a-z-]+)/); const tp = location.hash.match(/pack=([a-z]+)/); return k === "settings" ? JSON.stringify({ skin: m ? m[1] : "default", typePack: tp ? tp[1] : "auto" }) : ""; },
-    setSetting() {},
+    getSetting(k) {
+      if (k !== "settings") return "";
+      const m = location.hash.match(/skin=([a-z-]+)/); const tp = location.hash.match(/pack=([a-z]+)/);
+      if (m) {   // #…&skin=x forces a skin for every preview game
+        const look = { skin: m[1], typePack: tp ? tp[1] : "auto", t: Date.now() };
+        return JSON.stringify({ ...look, perGame: { "Pokemon Rejuvenation": look, "Pokémon World Frontier": look } });
+      }
+      let saved = ""; try { saved = sessionStorage.getItem("mock.settings") || ""; } catch (e) {}
+      return saved || JSON.stringify({ skin: "default", typePack: tp ? tp[1] : "auto" });
+    },
+    setSetting(k, v) { try { if (k === "settings") sessionStorage.setItem("mock.settings", v); } catch (e) {} },
     runtimes() { return JSON.stringify([{ id: "com.kirin", label: "Kirin" }, { id: "cyou.joiplay.joiplay", label: "JoiPlay" }]); },
     games() { return JSON.stringify([{ title: "Pokémon Rejuvenation" }, { title: "Pokémon Tectonic" }]); },
     play(p) { console.log("play:", p); return true; },

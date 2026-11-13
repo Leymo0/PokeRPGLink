@@ -33,6 +33,7 @@ ruby test/run_tests.rb             (Rejuvenation-shaped)
 ruby test/run_reborn_tests.rb      (Reborn/Desolation-shaped)
 ruby test/run_essentials_tests.rb  (Essentials v21 / Infinite Fusion-shaped)
 ruby test/run_tectonic_tests.rb    (Pokémon Tectonic-shaped)
+ruby test/run_world_frontier_tests.rb  (Pokémon World Frontier: facilities, streaks, inverse battles)
 ```
 
 The mock games are built from Rejuvenation 13.5's scripts, a Reborn-shaped variant, an Essentials v21 mock and a Tectonic mock. Every hook fails on its own and is logged in `<game>/PokeRPGLink/log.txt`, so a mismatch with a game turns off one feature rather than breaking the game.
