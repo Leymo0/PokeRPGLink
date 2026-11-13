@@ -16,6 +16,7 @@ and picking it from the **⚙** button on the panel. Three built-in skins ship w
 | `daisy`, `daisy-white`, `daisy-oled` | A full re-skin: restyled move buttons (type icon, effectiveness, big PP), click sounds and bounce. The variants `@import` the Daisy CSS and change only variables — the easiest way to make your own colour version |
 | `matcha`, `retro-purple`, `retro-snes` | Single-colour themes: they set `--t` (the type colour) to one value on moves and icons, recolour the built-in glyphs with `.tglyph [fill="#fff"] { fill: … }`, and tint image packs with a CSS `filter`. Their skin.js uses the shared `_shared/press.js` helper (`PokeRPGPress({ sound })`) for bounce + synth sounds |
 | `juicy` | React to game events with animation and sound (shake on hit, chimes on catch/level-up) |
+| `world-frontier` | A game theme: recolours the panel per facility from `state.frontier` (`body[data-facility]`), adds a battle section (streak ribbon), and plays fanfares when the streak or symbols change |
 
 ## Folder layout
 
@@ -62,7 +63,7 @@ Type colours are classes: `.t-FIRE { --t: #ee8130 }` etc.
 
 **Layout hooks** — `body` carries attributes you can target:
 
-- `data-view` — `area`, `party`, `bag`, `map`, `dex`, `save`, a plugin tab id, or `b-fight` / `b-mon` in battle
+- `data-view` — `area`, `frontier`, `party`, `bag`, `map`, `dex`, `save`, a plugin tab id, or `b-fight` / `b-mon` in battle
 - `data-mode` — `map`, `battle` or `title`
 - `data-double` — `1` during double battles
 - `data-skin` — your skin id
@@ -193,6 +194,12 @@ state.battle          { turn, menu ("command"|"fight"|"target"|"switch"|"none"),
   log[]               { id, text } — the battle's recent messages
   balls               { quick: { id, name, qty, icon, last }, all: [...] } — the quick-ball choice
   battlers[].otherEffects   less common active effects, by name
+state.frontier        battle facilities (World Frontier, or any Battle Tower-style challenge in progress):
+                      { game, inChallenge, facility: { id, name, format, rule, ace }, battle, rounds, streak,
+                        best, swaps, bp, symbols[], info[{ label, value }], facilities[{ id, name, format, rule, ace, earned }] }
+                      facility ids: world, tower, castle, temple, cathedral, victini, fortress, cruise, stadium
+  battle.inverse      true in an inverse battle (vs[].mult is already flipped)
+  battle.frontier     { id, name, battle, ace } — the facility and battle number during a facility battle
 state.toasts[]        recent messages from the game
 state.watch[]         { label, value } — game variables/switches chosen by extensions
 state.ext             data added by game extensions (see EXTENDING.md)

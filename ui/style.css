@@ -389,3 +389,51 @@ body.bpages[data-view="b-fight"] #main, body.bpages[data-view="b-bag"] #main, bo
 .story { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-family: var(--read); font-size: 14px; line-height: 19px; }
 .story li { padding: 6px 10px; border-radius: 10px; background: var(--panel-2); }
 .story .who { display: block; font-family: var(--ui); font-size: 12px; color: var(--amber); }
+
+/* ---------- battle facilities (World Frontier, Battle Tower runs) ---------- */
+.f-world{--fc:#4cc9f0}.f-tower{--fc:#f3b23c}.f-castle{--fc:#b07cff}.f-temple{--fc:#3fbf8f}.f-cathedral{--fc:#e86ab1}
+.f-victini{--fc:#ff7a3d}.f-fortress{--fc:#8fa3c2}.f-cruise{--fc:#3a8dde}.f-stadium{--fc:#5bd06a}
+.fglyph { width: 22px; height: 22px; color: var(--fc, var(--amber)); }
+.fhero { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; border-radius: 16px; text-align: left; margin-bottom: 8px;
+  background: linear-gradient(120deg, color-mix(in srgb, var(--fc) 26%, var(--panel)), var(--panel) 70%); border: 1px solid color-mix(in srgb, var(--fc) 45%, transparent); }
+.fhero .fglyph { width: 40px; height: 40px; padding: 7px; border-radius: 12px; background: color-mix(in srgb, var(--fc) 18%, transparent); }
+.fhero .fname { font-size: 20px; font-weight: 800; line-height: 1.1; }
+.fhero .fsub { color: var(--muted); font-size: 13px; font-weight: 600; }
+.chip.live { background: var(--fc, var(--amber)); color: var(--ink); }
+.fstats { display: grid; grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); gap: 6px; margin-bottom: 8px; }
+.fstats > div { display: grid; gap: 1px; padding: 7px 10px; border-radius: 12px; background: var(--panel); }
+.fstats span { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.fstats b { font-size: 22px; font-weight: 800; line-height: 1.1; }
+.fstats small { font-size: 13px; color: var(--muted); }
+.ace { display: grid; gap: 4px; margin-bottom: 8px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.acebar { height: 8px; border-radius: 99px; background: var(--panel-2); overflow: hidden; }
+.acebar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--fc, var(--amber)), var(--amber)); }
+.ace.now span { color: var(--amber); }
+.ace.now .acebar i { animation: acepulse 1s ease-in-out infinite alternate; }
+@keyframes acepulse { from { filter: brightness(1); } to { filter: brightness(1.6); } }
+.frule { font-family: var(--read); font-size: 13.5px; line-height: 1.4; margin: 2px 2px 6px; }
+.fteam { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.fmon { display: grid; justify-items: center; gap: 2px; padding: 6px 4px; border-radius: 12px; background: var(--panel); font-size: 12px; }
+.fmon b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fmon.fainted { opacity: .45; }
+.fmon .ft { display: flex; gap: 3px; }
+.tdot { width: 10px; height: 10px; border-radius: 50%; background: var(--t); box-shadow: 0 0 0 1px rgba(0,0,0,.25); }
+.ftiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.ftile { position: relative; display: grid; justify-items: center; gap: 1px; padding: 9px 4px 7px; border-radius: 12px; background: var(--panel); border: 1px solid transparent; }
+.ftile b { font-size: 13px; } .ftile span { font-size: 11px; color: var(--muted); font-weight: 600; }
+.ftile .fglyph { width: 26px; height: 26px; }
+.ftile[aria-current="true"] { border-color: var(--fc); background: color-mix(in srgb, var(--fc) 18%, var(--panel)); }
+.ftile .sym { position: absolute; top: 4px; right: 4px; color: var(--amber); }
+.ftile .sym svg { width: 14px; height: 14px; }
+.fsyms { display: flex; flex-wrap: wrap; gap: 5px; }
+.fsyms .chip svg { width: 13px; height: 13px; color: var(--amber); }
+.fhead { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: color-mix(in srgb, var(--fc) 20%, transparent); color: var(--fc); }
+.fhead svg { width: 26px; height: 26px; }
+.bstrip .frontchip { background: color-mix(in srgb, var(--fc) 30%, var(--panel-2)); }
+.bstrip .frontchip .fglyph { width: 15px; height: 15px; }
+.bstrip .acechip { background: var(--amber); color: var(--ink); animation: acepulse .9s ease-in-out infinite alternate; }
+.bstrip .invchip { background: linear-gradient(90deg, #8a2f6d, #3b2f8a); color: #ffe3f3; }
+.invtab { display: grid; gap: 4px; margin: 6px 0; font-size: 14px; }
+.invtab > div { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 6px 10px; border-radius: 10px; background: var(--panel-2); }
+.invtab > div:first-child { background: none; padding: 0 10px; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.invtab .se { color: #4fd17e; } .invtab .nve { color: #f39a3c; } .invtab .imm { color: #ff6b6b; }

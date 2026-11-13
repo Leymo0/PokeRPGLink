@@ -19,9 +19,13 @@ The game runs on the top screen; PokeRPGLink is the touch panel on the bottom sc
 | ![Summary](docs/images/page-summary.png)<br>**Summary** — stats, ability, held item, move order | ![Bag](docs/images/page-bag.png)<br>**Bag** — use items, give them to a Pokémon |
 | ![Pokédex](docs/images/page-dex.png)<br>**Pokédex** — filter by type, seen or caught | |
 
+| Pokémon World Frontier | |
+|---|---|
+| ![Frontier tab](docs/images/page-frontier.png)<br>**Frontier** — the facility you're in and its rules, battle, streak, best and BP, how far the Ace is, your team, and all nine challenges with the symbols you've earned | ![Inverse battle](docs/images/page-frontier-battle.png)<br>**Inverse battles** (Battle Cathedral) — the moves show flipped effectiveness, so *Super effective* really is; tap *Inverse* for the flipped chart |
+
 ## Skins
 
-Eleven built-in skins, chosen from the panel's ⚙ button and remembered **per game**. Want your own? **[SKINS.md](SKINS.md)** explains how to make skins — colours, layouts, extra features, animations and sounds.
+Built-in skins, chosen from the panel's ⚙ button and remembered **per game**. Want your own? **[SKINS.md](SKINS.md)** explains how to make skins — colours, layouts, extra features, animations and sounds.
 
 | Juicy Battles: animations & sounds on game events | Dim when idle (OLED Black) |
 |---|---|
@@ -64,6 +68,10 @@ Eleven built-in skins, chosen from the panel's ⚙ button and remembered **per g
 
 ![Super Retro skin](docs/images/skin-retro-snes.png)
 
+**World Frontier** — night-island navy and trophy gold for Pokémon World Frontier. The panel takes on each facility's colour, shows your streak and the Ace in battle, and plays a fanfare when your streak grows or you earn a symbol. World Frontier picks it automatically the first time it connects; change it any time from ⚙.
+
+![World Frontier skin](docs/images/skin-world-frontier.png)
+
 **Catch Tracker**
 
 ![Catch Tracker skin](docs/images/skin-catch-tracker.png)
@@ -77,6 +85,7 @@ Eleven built-in skins, chosen from the panel's ⚙ button and remembered **per g
 | Pokémon Reborn (E19.5) | its `.rb` Mods folder | Same engine as Rejuvenation |
 | Pokémon Desolation (EP6) | its `.rb` Mods folder | Same engine as Reborn |
 | Pokémon Infinite Fusion (incl. IF 2: Hoenn) | `Data/Scripts/998_PokeRPGLink/` | Built against its public source |
+| Pokémon World Frontier (1.2+) | `Data/Scripts/998_PokeRPGLink/` or `Plugins/PokeRPGLink/` + loader — the app picks whichever the build uses | Essentials 21.1 adapter plus a **Frontier** tab in place of Area (there are no wild Pokémon): facility, rules, battle number, streak, best streak, BP, the Ace at battle 30, symbols. **Inverse battles** in the Battle Cathedral flip the panel's effectiveness. Built from the game's published facility list — not yet checked against a real copy, so please send a `log.txt` if something's off |
 | Pokémon Tectonic | `Plugins/PokeRPGLink/` + a small loader added to `Data/PluginScripts.rxdata` | Its own adapter: six-button battle menu (the panel's Bag button is Tectonic's *Ball*), Avatars (health bars left, moves per turn, second status), Numb/Frostbite/Dizzy/Leeched/Waterlogged, stat steps, every battle effect the game shows, adaptive moves, several held items |
 | Other Pokémon Essentials v19–v21 games that ship loose scripts in `Data/Scripts/` | `Data/Scripts/998_PokeRPGLink/` | Same adapter as Infinite Fusion |
 | Other Essentials v19–v21 games with packed scripts but a `Data/PluginScripts.rxdata` | `Plugins/PokeRPGLink/` + loader (as Tectonic) | Generic Essentials adapter — should work, less tested |
@@ -122,6 +131,8 @@ The panel window is created with Android's `FLAG_NOT_FOCUSABLE`, so touching the
 JoiPlay still works if you prefer it — download the *JoiPlay* build of the game instead. PokeRPGLink works with either because it only talks to the game through files in the game folder.
 
 **Pokémon Tectonic:** download the normal PC version from tectonic-game.com, unzip it to your storage and run it with JoiPlay (with its RPG Maker plugin) — Tectonic's wiki says it runs there, with the occasional hiccup. Kirin may also run it. PokeRPGLink finds the folder and sets everything up the same way.
+
+**Pokémon World Frontier:** its Android build runs in **NaviaXP**, the player app the game ships for Android. Unzip the game into normal storage (below) and point NaviaXP at the folder with `Game.ini`. PokeRPGLink finds the folder, installs the mod, and its *Play* button opens NaviaXP on the top screen.
 
 **Put the game folder in normal storage**, e.g. `/storage/emulated/0/Games/Rejuvenation/` — not inside `Android/data/…` (apps can't share files there).
 

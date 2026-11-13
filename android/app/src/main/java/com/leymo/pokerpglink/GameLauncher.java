@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Finds the game runtimes on the device (Kirin, JoiPlay, other mkxp ports) and opens
+ * Finds the game runtimes on the device (Kirin, JoiPlay, NaviaXP, other mkxp ports) and opens
  * them on the top (main) screen. The runtime then shows its own game list — runtimes
  * don't offer a public way for other apps to start one specific game.
  */
@@ -35,7 +35,7 @@ final class GameLauncher {
             String s = (label + " " + pkg).toLowerCase(Locale.US);
             if (pkg.equals(c.getPackageName())) continue;
             if (s.contains("kirin")) kirin.add(new Runtime(pkg, label));
-            else if (s.matches(".*(joiplay|mkxp).*") && !s.contains("plugin")) other.add(new Runtime(pkg, label));
+            else if (s.matches(".*(joiplay|mkxp|navia).*") && !s.contains("plugin")) other.add(new Runtime(pkg, label));
         }
         List<Runtime> all = new ArrayList<>(kirin);
         for (Runtime r : other) if (all.stream().noneMatch(x -> x.pkg.equals(r.pkg))) all.add(r);

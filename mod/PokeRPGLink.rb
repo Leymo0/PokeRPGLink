@@ -1,6 +1,6 @@
 #==============================================================================
 # PokeRPGLink — second-screen companion bridge for Pokémon Rejuvenation
-# v1.0.0  ·  made for Leymo's AYN Thor
+# v1.0.12 ·  made for Leymo's AYN Thor
 #
 # Drop this file into the game's mod folder:
 #   V14+  : <game folder>/patch/Mods/PokeRPGLink.rb   (create "Mods" if missing)
@@ -22,7 +22,7 @@
 
 module PokeRPGLink
   unless const_defined?(:VERSION)
-    VERSION      = "1.0.11"
+    VERSION      = "1.0.12"
     STATE_EVERY  = 8     # frames between state refreshes (~7.5x per second)
     CMD_EVERY    = 3     # frames between command-folder checks
   end
@@ -1819,6 +1819,7 @@ module PokeRPGLink
     ext, watch = ext_payload
     st["ext"] = ext unless ext.empty?
     st["watch"] = watch unless watch.empty?
+    frontier_decorate(st) rescue err("frontier", $!)
     objs = (trainer.party rescue []) || []
     (st["party"] || []).each_with_index do |h, i|
       sh = shadow_info(objs[i])
@@ -2275,6 +2276,7 @@ module PokeRPGLink
         title ||= ($data_system.game_title rescue nil) if defined?($data_system)
         fam = defined?(PokeBattle_Scene) && !defined?(Battle::Scene) ? "essentials-v19" : "essentials-v21"
         fam = "infinite-fusion" if title.to_s =~ /infinite ?fusion/i
+        fam = "world-frontier" if title.to_s =~ /world ?frontier/i
         ver = (defined?(Settings::GAME_VERSION) ? Settings::GAME_VERSION : nil) || (defined?(Essentials::VERSION) ? Essentials::VERSION : "")
         { "title" => (title || "Pokémon fangame").to_s, "version" => ver.to_s, "family" => fam }
       end
@@ -3125,6 +3127,245 @@ end
 
 if PokeRPGLink.essentials? && PokeRPGLink.tectonic?
   PokeRPGLink.singleton_class.prepend(PokeRPGLink::TectMethods)
+end
+
+#==============================================================================
+# BATTLE FACILITIES — Pokémon World Frontier (Essentials 21.1) and any game that
+# runs a Battle Tower-style challenge through Essentials' BattleChallenge.
+# Engine-neutral: it only adds state.frontier (and battle.inverse) on top of
+# whatever adapter is active, so nothing here can change how a battle plays.
+#
+#   - which facility you're in, its rules, the current battle, streak, best
+#     streak, swaps (rentals) and Battle Points
+#   - World Frontier's Ace (the facility boss at battle 30, game v1.2.0+)
+#   - symbols and other counters the game keeps in named switches/variables
+#   - inverse battles (Battle Cathedral): move effectiveness on the panel is
+#     flipped to match, unless the game already reports flipped numbers
+#==============================================================================
+module PokeRPGLink
+  # [id, name, map-name pattern (EN/ES/FR/DE/IT), format, rule]. World Stadium
+  # comes before Battle Stadium so "stadium" alone means the doubles facility.
+  FRONTIER_FACILITIES = [
+    ["world", "World Stadium", /world\s*stadium|estadio\s*mundial|stade\s*mondial|weltstadion|stadio\s*mondiale/i,
+     "Champions", "Rivals and Champions from across the series. Opens once all eight facilities are cleared."],
+    ["tower", "Battle Tower", /tower|torre|\btour\b|turm/i, "Singles", "Classic one-on-one single battles."],
+    ["castle", "Battle Castle", /castle|castillo|ch[aâ]teau|schloss|castello/i, "Judged", "Every battle is overseen by a judge."],
+    ["temple", "Battle Temple", /temple|templo|tempel|tempio/i, "Roguelike", "A roguelike run through the temple's floors, with a boss at the end."],
+    ["cathedral", "Battle Cathedral", /cathedral|catedral|cath[ée]drale|kathedrale|cattedrale/i, "Inverse",
+     "Inverse battles: the type chart is flipped. Super effective becomes not very effective, and immunities become weaknesses."],
+    ["victini", "Battle Victini", /victini/i, "Random", "Battles with a dose of randomness thrown in."],
+    ["fortress", "Battle Fortress", /fortress|fortaleza|forteresse|festung|fortezza/i, "Rotation", "Rotation battles."],
+    ["cruise", "Battle Cruise", /cruise|crucero|croisi[èe]re|kreuzfahrt|crociera/i, "Rentals", "Rental Pokémon only — your own team stays on shore."],
+    ["stadium", "Battle Stadium", /stadium|estadio|stade|stadion|stadio/i, "Doubles", "Double battles."],
+  ]
+  FRONTIER_ACE_AT = 30   # World Frontier 1.2.0: every facility's Ace waits at battle 30
+  FRONTIER_WORDS  = /streak|racha|s[ée]rie|wins?\b|victori|round|ronda|floor|piso|planta|record|r[ée]cord|best|mejor|\bBP\b|battle points|puntos/i
+  SYMBOL_WORDS    = /symbol|s[íi]mbolo|symbole/i
+  INVERSE_WORDS   = /invers/i
+
+  def self.world_frontier?
+    (game_info["family"] == "world-frontier") || (game_info["title"].to_s =~ /world ?frontier/i ? true : false)
+  rescue
+    false
+  end
+
+  def self.facility_for(name)
+    n = name.to_s
+    return nil if n.empty?
+    FRONTIER_FACILITIES.find { |f| n =~ f[2] }
+  end
+
+  def self.facility_hash(f, earned = nil)
+    h = { "id" => f[0], "name" => f[1], "format" => f[3], "rule" => f[4] }
+    h["ace"] = FRONTIER_ACE_AT if world_frontier? && f[0] != "world"
+    h["earned"] = earned unless earned.nil?
+    h
+  end
+
+  def self.try_call(obj, *names)
+    return nil if obj.nil?
+    names.each do |n|
+      next unless obj.respond_to?(n)
+      v = (obj.send(n) rescue nil)
+      return v unless v.nil?
+    end
+    nil
+  end
+
+  def self.battle_challenge
+    return nil unless defined?(pbBattleChallenge)
+    return nil if defined?($PokemonGlobal) && $PokemonGlobal.nil?
+    pbBattleChallenge
+  rescue
+    nil
+  end
+
+  # names of the game's switches / variables ($data_system), read once
+  def self.system_names(kind)
+    @system_names ||= {}
+    @system_names[kind] ||= begin
+      list = (kind == :sw ? $data_system.switches : $data_system.variables) rescue nil
+      out = []
+      (list || []).each_with_index { |n, i| out << [i, n.to_s.strip] if i > 0 && n && !n.to_s.strip.empty? }
+      out
+    rescue
+      []
+    end
+  end
+
+  def self.named_switches_on(re)
+    system_names(:sw).select { |i, n| n =~ re && ($game_switches[i] rescue false) }.map { |_, n| n }
+  end
+
+  def self.frontier_counters
+    out = []
+    system_names(:var).each do |i, n|
+      next unless n =~ FRONTIER_WORDS
+      v = ($game_variables[i] rescue nil)
+      next if v.nil? || v == 0 || v == "" || v == false
+      next unless v.is_a?(Numeric) || v.is_a?(String)
+      out << { "label" => n, "value" => v }
+      break if out.length >= 8
+    end
+    out
+  end
+
+  def self.frontier_info
+    wf = world_frontier?
+    bc = battle_challenge
+    inprog = bc ? ((try_call(bc, :pbInProgress?) || try_call(bc, :pbInChallenge?)) ? true : false) : false
+    return nil unless wf || inprog
+    map_name = ($game_map.name rescue nil)
+    map_name = (pbGetMapNameFromId($game_map.map_id) rescue "") if map_name.nil? || map_name.to_s.empty?
+    fac = facility_for(map_name)
+    # battle rooms often have a generic name: keep the facility you walked in through
+    if fac
+      @last_facility = fac
+    elsif inprog || @battle
+      fac = @last_facility
+    else
+      @last_facility = nil
+    end
+    out = { "game" => wf, "inChallenge" => inprog }
+    out["facility"] = facility_hash(fac) if fac
+    if bc && inprog
+      data = (bc.instance_variable_get(:@bc) rescue nil) || try_call(bc, :data)
+      cur = try_call(bc, :currentChallenge)
+      out["battle"] = try_call(bc, :battleNumber) || try_call(data, :battleNumber)
+      out["rounds"] = try_call(bc, :numRounds) || try_call(data, :numRounds)
+      streak = (cur && bc.respond_to?(:getCurrentWins)) ? (bc.getCurrentWins(cur) rescue nil) : nil
+      streak = try_call(bc, :wins) || try_call(data, :wins) if streak.nil?
+      out["streak"] = streak
+      out["best"] = (bc.getMaxWins(cur) rescue nil) if cur && bc.respond_to?(:getMaxWins)
+      sw = try_call(bc, :swaps) || try_call(data, :swaps)
+      out["swaps"] = sw if sw && fac && fac[0] == "cruise"
+      out.delete_if { |_, v| v.nil? }
+    end
+    bp = (trainer.battle_points rescue nil)
+    if bp.nil?
+      bpv = system_names(:var).find { |_, n| n =~ /\bBP\b|battle points|puntos de batalla/i }
+      bp = ($game_variables[bpv[0]] rescue nil) if bpv
+    end
+    out["bp"] = bp.to_i if bp.is_a?(Numeric)
+    syms = named_switches_on(SYMBOL_WORDS)
+    out["symbols"] = syms unless syms.empty?
+    info = frontier_counters
+    out["info"] = info unless info.empty?
+    if wf
+      out["facilities"] = FRONTIER_FACILITIES.map do |f|
+        facility_hash(f, syms.any? { |s| s =~ f[2] })
+      end
+    end
+    out
+  end
+
+  #---- inverse battles --------------------------------------------------------
+  def self.inverse_battle?(frontier = nil)
+    bt = @battle
+    return false unless bt
+    return @inverse_for[1] if @inverse_for && @inverse_for[0].equal?(bt)
+    why = nil
+    %i[inverse inverse? inverseBattle inverse_battle isInverse].each do |m|
+      why ||= "battle.#{m}" if bt.respond_to?(m) && (bt.send(m) rescue false)
+    end
+    why ||= (bt.instance_variables.find { |v| v.to_s =~ INVERSE_WORDS && bt.instance_variable_get(v) }) && "battle ivar"
+    [(bt.rules rescue nil), ($game_temp.battle_rules rescue nil)].each do |r|
+      next unless r.is_a?(Hash)
+      why ||= "battle rule" if r.any? { |k, v| k.to_s =~ INVERSE_WORDS && v }
+    end
+    why ||= "switch" unless named_switches_on(INVERSE_WORDS).empty?
+    f = (frontier || {})["facility"]
+    why ||= "Battle Cathedral" if f && f["id"] == "cathedral" && world_frontier?
+    log("inverse battle (#{why})") if why
+    @inverse_for = [bt, why ? true : false]
+    @inverse_for[1]
+  rescue
+    false
+  end
+
+  # one attacking type against one defending type on the normal chart, ×1 = neutral
+  def self.chart_one(atk, d)
+    if defined?(GameData::Type)
+      t = (GameData::Type.try_get(d) rescue nil)
+      if t
+        im, we, re = (t.immunities rescue nil), (t.weaknesses rescue nil), (t.resistances rescue nil)
+        if im || we || re
+          return 0.0 if (im || []).include?(atk)
+          return 2.0 if (we || []).include?(atk)
+          return 0.5 if (re || []).include?(atk)
+          return 1.0
+        end
+      end
+    end
+    if defined?(PBTypes) && PBTypes.respond_to?(:getEffectiveness)
+      return PBTypes.getEffectiveness(atk, d).to_f / 2.0
+    end
+    base = defined?(Effectiveness::NORMAL_EFFECTIVE_MULTIPLIER) ? Effectiveness::NORMAL_EFFECTIVE_MULTIPLIER : Effectiveness::NORMAL_EFFECTIVE
+    Effectiveness.calculate(atk, d).to_f / base.to_f
+  rescue
+    nil
+  end
+
+  INVERT = { 0.0 => 2.0, 0.5 => 2.0, 2.0 => 0.5, 1.0 => 1.0 }
+
+  # Flip the panel's effectiveness for an inverse battle. If the game's own number
+  # already differs from the normal chart (it flipped it itself, or an ability did
+  # something), the game's number is kept.
+  def self.invert_effectiveness(b)
+    (b["moves"] || []).each do |mv|
+      atk = mv["type"].to_s
+      next if atk.empty?
+      atk = atk.to_sym
+      (mv["vs"] || []).each do |v|
+        next if v["mult"].nil?
+        obj = (@battle.battlers[v["index"]] rescue nil)
+        next unless obj
+        dts = ((obj.pbTypes(true) rescue nil) || [(obj.type1 rescue nil), (obj.type2 rescue nil)]).compact.uniq
+        per = dts.map { |d| chart_one(atk, d) }
+        next if per.empty? || per.any?(&:nil?)
+        normal = per.inject(1.0) { |a, x| a * x }
+        next unless (v["mult"].to_f - normal).abs < 0.01
+        v["mult"] = per.inject(1.0) { |a, x| a * (INVERT[x] || x) }.round(3)
+      end
+    end
+  end
+
+  def self.frontier_decorate(st)
+    return if st["mode"] == "title"
+    f = frontier_info
+    st["frontier"] = f if f
+    b = st["battle"]
+    return unless b && @battle
+    if inverse_battle?(f)
+      b["inverse"] = true
+      invert_effectiveness(b)
+    end
+    if f && f["facility"]
+      n = f["streak"] ? f["streak"].to_i + 1 : f["battle"]
+      b["frontier"] = { "id" => f["facility"]["id"], "name" => f["facility"]["name"], "battle" => n,
+                        "ace" => (n && f["facility"]["ace"] && n.to_i == f["facility"]["ace"]) ? true : false }
+    end
+  end
 end
 
 #==============================================================================

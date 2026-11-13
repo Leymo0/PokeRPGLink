@@ -1,0 +1,9 @@
+{
+ "name": "World Frontier",
+ "author": "Leymo",
+ "version": "1.0",
+ "description": "Night-island navy and trophy gold for Pokémon World Frontier. The panel takes on each facility's colour, shows your streak and the Ace in battle, and plays a fanfare when your streak grows or you earn a symbol.",
+ "typeIcons": ["Dark icons"],
+ "swatch": ["#0a1128", "#14204a", "#f2c14e"],
+ "tag": "Battle Frontier"
+}

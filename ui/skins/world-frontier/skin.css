@@ -1,0 +1,88 @@
+/* World Frontier — night-island navy, trophy gold, and the colour of whichever
+ * facility you're in (skin.js sets body[data-facility]; --fc follows it). */
+:root {
+  --ink: #0a1128;
+  --panel: #14204a;
+  --panel-2: #1d2c5c;
+  --line: #2c3f7a;
+  --text: #eef3ff;
+  --muted: #95a6cf;
+  --amber: #f2c14e;          /* trophy gold */
+  --gold-2: #c8922a;
+  --caught: #5bd08a;
+  --fight: #e5484d; --bag: #e7a93a; --mon: #2fae86; --run: #3a7fd6;
+  --r-btn: 12px;
+  --fc: #f2c14e;             /* facility colour (gold when you're not in one) */
+}
+body[data-facility="world"]{--fc:#4cc9f0} body[data-facility="tower"]{--fc:#f2c14e} body[data-facility="castle"]{--fc:#b07cff}
+body[data-facility="temple"]{--fc:#3fbf8f} body[data-facility="cathedral"]{--fc:#e86ab1} body[data-facility="victini"]{--fc:#ff7a3d}
+body[data-facility="fortress"]{--fc:#8fa3c2} body[data-facility="cruise"]{--fc:#3a8dde} body[data-facility="stadium"]{--fc:#5bd06a}
+
+/* the island at night: a faint globe of meridians bottom-right, a glow in the facility's colour top-left */
+body {
+  background:
+    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='520' viewBox='0 0 520 520' fill='none' stroke='%23ffffff' stroke-opacity='.05' stroke-width='2'%3E%3Ccircle cx='260' cy='260' r='250'/%3E%3Cellipse cx='260' cy='260' rx='120' ry='250'/%3E%3Cellipse cx='260' cy='260' rx='190' ry='250'/%3E%3Cpath d='M260 10v500M10 260h500M40 140h440M40 380h440'/%3E%3C/svg%3E") right -160px bottom -200px / 520px no-repeat,
+    radial-gradient(90% 55% at 0% 0%, color-mix(in srgb, var(--fc) 20%, transparent), transparent 70%),
+    linear-gradient(180deg, #0c1530, #070d20);
+  transition: background-color .4s;
+}
+#bar { background: linear-gradient(180deg, #16234f, #101a3c); border-bottom: 2px solid var(--fc); box-shadow: 0 2px 14px color-mix(in srgb, var(--fc) 30%, transparent); }
+#bar .place { letter-spacing: .02em; }
+#tabs { background: linear-gradient(0deg, #0e1735, #14204a); border-top: 1px solid var(--line); }
+#tabs:not(.battle) button[aria-current="true"] { color: #241a05; background: linear-gradient(180deg, #ffe08a, var(--amber) 55%, var(--gold-2)); box-shadow: 0 0 0 1px #ffeab0 inset, 0 4px 14px rgba(242,193,78,.35); }
+
+/* cards: navy with a gold hairline */
+.row-btn, .fighter, .mini, .tile, .savecard, .logbox, .fstats > div, .fmon, .ftile, .tgt { background: linear-gradient(180deg, #17244f, #121c40); border: 1px solid #263a72; }
+.fighter.foe, .mini.foe { border-left: 4px solid var(--fight); }
+.fighter.own, .mini.own { border-left: 4px solid var(--fc); }
+.mini.active { outline-color: var(--amber); }
+.hp { background: #0b1330; } .hp > i { background: linear-gradient(90deg, #4fd17e, #8ff0b0); }
+.hp.mid > i { background: linear-gradient(90deg, #e7a93a, #ffd36b); } .hp.low > i { background: linear-gradient(90deg, #e5484d, #ff8a7a); }
+#sheet { background: linear-gradient(180deg, #121c40, #0a1128); border-top-color: var(--fc); }
+h2 { color: var(--amber); letter-spacing: .04em; text-transform: uppercase; font-size: 12.5px; }
+h2 .count { color: var(--muted); text-transform: none; letter-spacing: 0; }
+
+/* moves: dark plates with a type-coloured edge and glow, effectiveness word shown */
+.move { background: linear-gradient(100deg, color-mix(in srgb, var(--t) 34%, #121c40) 0%, #121c40 75%); border: 1px solid color-mix(in srgb, var(--t) 60%, transparent);
+  box-shadow: inset 5px 0 0 var(--t), 0 3px 0 rgba(0,0,0,.35); padding-left: 14px; }
+.move .mn { font-size: 16.5px; }
+.move { min-height: 0; padding-top: 5px; padding-bottom: 5px; }
+.move .meff { display: block; font-size: 11.5px; line-height: 14px; font-weight: 800; color: var(--muted); }
+.move.e-super .meff { color: #6ff0a0; } .move.e-weak .meff { color: #ffb36b; } .move.e-none .meff { color: #ff7a7a; }
+.move.e-super { box-shadow: inset 5px 0 0 var(--t), 0 0 0 1px #4fd17e, 0 0 14px rgba(79,209,126,.35), 0 3px 0 rgba(0,0,0,.35); }
+
+/* the big four: gold-rimmed */
+#tabs.battle button { border: 1.5px solid rgba(255,234,176,.55); box-shadow: inset 0 -4px 0 rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.25); }
+#tabs.battle button[aria-current="true"] { outline: 3px solid var(--amber); }
+
+/* Frontier tab: the facility as a trophy plaque */
+.fhero { background: linear-gradient(120deg, color-mix(in srgb, var(--fc) 30%, #14204a), #101a3c 75%); border: 1.5px solid var(--amber);
+  box-shadow: 0 0 0 3px #0a1128, 0 0 0 4.5px color-mix(in srgb, var(--amber) 55%, transparent), 0 8px 24px rgba(0,0,0,.35); margin: 4px 4px 12px; width: calc(100% - 8px); }
+.fhero .fglyph { width: 46px; height: 46px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--fc) 45%, #fff 0%), color-mix(in srgb, var(--fc) 15%, #0a1128));
+  box-shadow: 0 0 0 2px var(--amber), 0 0 16px color-mix(in srgb, var(--fc) 55%, transparent); color: #fff; }
+.fhero .fname { font-size: 22px; letter-spacing: .02em; text-shadow: 0 2px 0 rgba(0,0,0,.35); }
+.fstats b { color: #fff; } .fstats > div:first-child b { color: var(--amber); }
+.acebar { background: #0b1330; box-shadow: inset 0 0 0 1px #263a72; height: 10px; }
+.acebar i { background: linear-gradient(90deg, var(--fc), var(--amber)); box-shadow: 0 0 10px color-mix(in srgb, var(--amber) 60%, transparent); }
+.ftile.earned { border-color: color-mix(in srgb, var(--amber) 70%, transparent); }
+.ftile.earned .fglyph { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--fc) 70%, transparent)); }
+
+/* battle: a streak ribbon (added by skin.js) */
+.bstrip:has(.wf-ribbon) .frontchip, .bstrip:has(.wf-ribbon) .acechip { display: none; }
+.wf-ribbon { flex: 1 1 210px; display: flex; align-items: center; gap: 8px; margin: 0; padding: 2px 10px; border-radius: 99px; font-size: 13px; font-weight: 700; min-height: 25px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--fc) 28%, #14204a), #101a3c); border: 1px solid color-mix(in srgb, var(--fc) 50%, transparent); }
+.wf-ribbon b { color: var(--amber); font-size: 14px; }
+.wf-ribbon svg { width: 15px; height: 15px; color: var(--amber); }
+.wf-ribbon .bar { flex: 1; height: 6px; border-radius: 99px; background: #0b1330; overflow: hidden; }
+.wf-ribbon .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--fc), var(--amber)); }
+.wf-ribbon.ace { background: linear-gradient(90deg, #6b4a0e, #2a1d05); border-color: var(--amber); animation: wf-glow 1s ease-in-out infinite alternate; }
+@keyframes wf-glow { from { box-shadow: 0 0 0 rgba(242,193,78,0); } to { box-shadow: 0 0 16px rgba(242,193,78,.6); } }
+
+/* big announcements: streak up, symbol earned, Ace battle, inverse battle */
+.wf-banner { position: fixed; left: 50%; top: 38%; z-index: 60; transform: translate(-50%, -50%); pointer-events: none; text-align: center;
+  padding: 14px 26px; border-radius: 16px; background: linear-gradient(180deg, #1d2c5c, #0a1128); border: 2px solid var(--amber);
+  box-shadow: 0 0 0 4px #0a1128, 0 0 30px rgba(242,193,78,.5); font-weight: 800; color: #fff; min-width: 220px; }
+.wf-banner .big { display: block; font-size: 30px; color: var(--amber); letter-spacing: .04em; text-shadow: 0 2px 0 rgba(0,0,0,.45); }
+.wf-banner .small { display: block; font-size: 14px; color: var(--muted); }
+.wf-banner.inverse { border-color: #e86ab1; box-shadow: 0 0 0 4px #0a1128, 0 0 30px rgba(232,106,177,.55); }
+.wf-banner.inverse .big { color: #ff9ad2; }
